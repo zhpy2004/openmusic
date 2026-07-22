@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
@@ -26,6 +27,11 @@ Future<void> main() async {
   // PlaybackController 需要在 AudioService.init 之前创建，
   // 因此不再由 provider 构造，改为注入现成实例。
   final controller = PlaybackController(engine);
+  // 逐曲播放埋点(play_events 追加日志;历史 UI 后期做)。best-effort:关库/满盘
+  // 等写入异常吞掉,不让未观测的异步错误冒泡(埋点失败不该影响播放)。
+  controller.onTrackStarted = (track) => unawaited(
+    database.logPlayEvent(track.fingerprint).catchError((Object _) {}),
+  );
 
   if (Platform.isAndroid) {
     try {

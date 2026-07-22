@@ -70,4 +70,33 @@ void main() {
     expect(find.text('Alpha'), findsOneWidget);
     expect(find.text('Beta'), findsNothing);
   });
+
+  testWidgets('曲目 ⋮ 菜单可加入歌单', (tester) async {
+    await db.createPlaylist('L1');
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('加入歌单'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('L1'));
+    await tester.pumpAndSettle();
+    // 断言写入:L1 有 1 首(用 runAsync 跑真实事件循环读 drift 流)。
+    final u = (await tester.runAsync(
+      () => db.watchPlaylists().first,
+    ))!.single.uuid;
+    final items = await tester.runAsync(() => db.watchPlaylistItems(u).first);
+    expect(items!.length, 1);
+  });
+
+  testWidgets('红心按钮切换收藏', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    // 初始未收藏:两曲各一个空心。点第一首的红心 → 该曲入收藏。
+    await tester.tap(find.byIcon(Icons.favorite_border).first);
+    await tester.pumpAndSettle();
+    final favs = await tester.runAsync(() => db.watchFavorites().first);
+    expect(favs, ['fp1']);
+    expect(find.byIcon(Icons.favorite), findsOneWidget); // 变实心
+  });
 }

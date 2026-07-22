@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../ui/library_screen.dart';
 import '../ui/now_playing_bar.dart';
+import '../ui/playlists_screen.dart';
 import '../ui/settings_screen.dart';
 
 class OpenMusicApp extends StatefulWidget {
@@ -13,7 +14,11 @@ class OpenMusicApp extends StatefulWidget {
 
 class _OpenMusicAppState extends State<OpenMusicApp> {
   int _tab = 0;
-  static const _screens = [LibraryScreen(), SettingsScreen()];
+  static const _screens = [
+    LibraryScreen(),
+    PlaylistsScreen(),
+    SettingsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +58,10 @@ class _OpenMusicAppState extends State<OpenMusicApp> {
                         label: Text('曲库'),
                       ),
                       NavigationRailDestination(
+                        icon: Icon(Icons.queue_music),
+                        label: Text('歌单'),
+                      ),
+                      NavigationRailDestination(
                         icon: Icon(Icons.settings),
                         label: Text('设置'),
                       ),
@@ -73,6 +82,10 @@ class _OpenMusicAppState extends State<OpenMusicApp> {
                 NavigationDestination(
                   icon: Icon(Icons.library_music),
                   label: '曲库',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.queue_music),
+                  label: '歌单',
                 ),
                 NavigationDestination(icon: Icon(Icons.settings), label: '设置'),
               ],

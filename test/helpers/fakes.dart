@@ -57,8 +57,10 @@ class FakeAudioEngine implements AudioEngine {
   Future<void> setRepeatMode(RepeatMode mode) async =>
       calls.add('repeat($mode)');
 
+  // 与真实 MediaKitEngine 对齐:indexStream 以 .distinct() 收尾(见
+  // media_kit_engine.dart)。少了它会掩盖"同下标再入队被吞"的埋点漏计 bug。
   @override
-  Stream<int> get indexStream => indexCtrl.stream;
+  Stream<int> get indexStream => indexCtrl.stream.distinct();
   @override
   Stream<bool> get playingStream => playingCtrl.stream;
   @override

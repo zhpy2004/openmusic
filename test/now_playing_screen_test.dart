@@ -5,6 +5,7 @@ import 'package:openmusic/src/app/providers.dart';
 import 'package:openmusic/src/data/database.dart';
 import 'package:openmusic/src/ui/now_playing_screen.dart';
 
+import 'helpers/db.dart';
 import 'helpers/fakes.dart';
 
 Track track(int id, String path, String title) => Track(
@@ -31,8 +32,14 @@ void main() {
     engine.duration = const Duration(minutes: 3, seconds: 25);
     engine.position = const Duration(seconds: 42);
 
+    final db = AppDatabase(testExecutor());
+    addTearDown(db.close);
+
     final container = ProviderContainer(
-      overrides: [audioEngineProvider.overrideWithValue(engine)],
+      overrides: [
+        audioEngineProvider.overrideWithValue(engine),
+        databaseProvider.overrideWithValue(db), // 红心按钮读 isFavoriteProvider
+      ],
     );
     addTearDown(container.dispose);
 

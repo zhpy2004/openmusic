@@ -88,4 +88,39 @@ void main() {
       'repeat(RepeatMode.off)',
     ]);
   });
+
+  test('每次切曲触发 onTrackStarted(含起播,精确序列)', () async {
+    final started = <String>[];
+    controller.onTrackStarted = (track) => started.add(track.fingerprint);
+    await controller.playTracks(tracks, startIndex: 0);
+    engine.indexCtrl.add(1);
+    await pumpEventQueue();
+    engine.indexCtrl.add(2);
+    await pumpEventQueue();
+    // 起播 fp1 + 切到 fp2、fp3,各一次,不多不少。
+    expect(started, ['fp1', 'fp2', 'fp3']);
+  });
+
+  test('新队列复用同一下标不会被 distinct 吞掉起播埋点(H1 回归)', () async {
+    final started = <String>[];
+    controller.onTrackStarted = (track) => started.add(track.fingerprint);
+    // 单曲队列 A,下标 0。
+    await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
+    await pumpEventQueue();
+    // 换单曲队列 B,同样下标 0——真实引擎 indexStream.distinct() 会吞掉这次
+    // index 事件,若埋点只挂在 index 监听上,B 的起播就丢了。
+    await controller.playTracks([track(2, '/b', 'B')], startIndex: 0);
+    await pumpEventQueue();
+    expect(started, ['fp1', 'fp2']);
+  });
+
+  test('重复播放同一首(再次点播)仍计一次起播', () async {
+    final started = <String>[];
+    controller.onTrackStarted = (track) => started.add(track.fingerprint);
+    await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
+    await pumpEventQueue();
+    await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
+    await pumpEventQueue();
+    expect(started, ['fp1', 'fp1']); // 显式再次点播算新的一次
+  });
 }

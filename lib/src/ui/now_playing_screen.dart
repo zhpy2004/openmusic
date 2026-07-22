@@ -72,9 +72,29 @@ class NowPlayingScreen extends ConsumerWidget {
                       },
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  // 6 个控制键在窄屏(手机 ~360dp)会横向溢出。用 Wrap 而非
+                  // FittedBox:放不下时换行,保持按钮 48dp 触控目标(a11y),
+                  // 不缩小成难点的小图标;放得下(桌面/平板)仍是一行。
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final fp = track.fingerprint;
+                          final isFav =
+                              ref.watch(isFavoriteProvider(fp)).value == true;
+                          return IconButton(
+                            icon: Icon(
+                              isFav ? Icons.favorite : Icons.favorite_border,
+                              color: isFav ? Colors.pink : null,
+                            ),
+                            tooltip: isFav ? '取消收藏' : '收藏',
+                            onPressed: () =>
+                                ref.read(databaseProvider).toggleFavorite(fp),
+                          );
+                        },
+                      ),
                       IconButton(
                         icon: Icon(
                           Icons.shuffle,

@@ -46,3 +46,28 @@ final scanProgressProvider = StateProvider<ScanProgress?>((ref) => null);
 /// 无法承载事后可见的问题报告，故单列此 provider：扫描开始清空，done 后保留供
 /// 用户在设置页查看，点“清除”或下次扫描开始时重置。
 final lastScanProblemsProvider = StateProvider<List<String>>((ref) => const []);
+
+/// 歌单列表(按 updatedAt 倒序)。
+final playlistsProvider = StreamProvider<List<Playlist>>(
+  (ref) => ref.watch(databaseProvider).watchPlaylists(),
+);
+
+/// 某歌单的成员(含指纹关联到的曲目;track 为 null = 文件缺失)。
+/// autoDispose:family 按 uuid 生成实例,详情页关闭后须释放对应 watch 订阅,
+/// 否则浏览多个歌单会累积永不关闭的 SQLite 查询流。
+final playlistItemsProvider = StreamProvider.autoDispose
+    .family<List<PlaylistEntry>, String>(
+      (ref, uuid) => ref.watch(databaseProvider).watchPlaylistItems(uuid),
+    );
+
+/// 收藏的曲目指纹(按 addedAt 倒序)。
+final favoritesProvider = StreamProvider<List<String>>(
+  (ref) => ref.watch(databaseProvider).watchFavorites(),
+);
+
+/// 单曲收藏状态(红心按钮实时反映)。autoDispose.family:每曲一个,列表项/播放页
+/// 卸载即释放。用具名 provider 而非在 build 里 new StreamProvider——后者每次重建
+/// 都造新 provider、永不释放,是 Riverpod 常见泄漏坑。
+final isFavoriteProvider = StreamProvider.autoDispose.family<bool, String>(
+  (ref, fp) => ref.watch(databaseProvider).watchIsFavorite(fp),
+);
