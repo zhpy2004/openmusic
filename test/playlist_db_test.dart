@@ -19,8 +19,8 @@ void main() {
   setUp(() => db = AppDatabase(testExecutor()));
   tearDown(() => db.close());
 
-  test('schemaVersion 为 2', () {
-    expect(db.schemaVersion, 2);
+  test('schemaVersion 为 3', () {
+    expect(db.schemaVersion, 3);
   });
 
   test('新表与旧表并存:插曲目 + 插歌单各自可查', () async {

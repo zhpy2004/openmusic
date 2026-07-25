@@ -71,7 +71,10 @@ void main() {
     expect(find.text('Alpha'), findsOneWidget);
     expect(find.text('文件缺失'), findsOneWidget); // 缺失项占位文案
 
-    await tester.tap(find.byIcon(Icons.remove_circle_outline).first);
+    // 移除从独立按钮改到了 ⋮ 菜单里(菜单同时提供「刮削」)
+    await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('移除'));
     await tester.pumpAndSettle();
     expect(find.text('Alpha'), findsNothing);
   });

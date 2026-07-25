@@ -61,6 +61,20 @@ class PlayEvents extends Table {
   TextColumn get eventType => text().withDefault(const Constant('played'))();
 }
 
+/// 文本修正覆盖层。刮削不改音频字节(改了会动指纹),文本修正存这里,
+/// 再物化回 tracks 行显示。fp 为键 + updatedAt ⇒ M3 可按行 LWW 同步。
+/// 字段为 null = 该项不覆盖,沿用文件原始标签。
+class TrackOverrides extends Table {
+  TextColumn get trackFp => text()();
+  TextColumn get title => text().nullable()();
+  TextColumn get artist => text().nullable()();
+  TextColumn get album => text().nullable()();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {trackFp};
+}
+
 /// 歌单成员 + 关联曲目(可能为 null=文件缺失/未扫描到)。
 class PlaylistEntry {
   const PlaylistEntry({required this.fp, required this.position, this.track});
@@ -70,7 +84,15 @@ class PlaylistEntry {
 }
 
 @DriftDatabase(
-  tables: [Tracks, ScanRoots, Playlists, PlaylistItems, Favorites, PlayEvents],
+  tables: [
+    Tracks,
+    ScanRoots,
+    Playlists,
+    PlaylistItems,
+    Favorites,
+    PlayEvents,
+    TrackOverrides,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
@@ -78,7 +100,7 @@ class AppDatabase extends _$AppDatabase {
   final _rnd = Random();
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -90,6 +112,10 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(playlistItems);
         await m.createTable(favorites);
         await m.createTable(playEvents);
+      }
+      // v2→v3:只新建 M2-B 的覆盖表,其余表原样保留。
+      if (from < 3) {
+        await m.createTable(trackOverrides);
       }
     },
   );
@@ -329,4 +355,82 @@ class AppDatabase extends _$AppDatabase {
   Stream<bool> watchIsFavorite(String fp) => (select(
     favorites,
   )..where((f) => f.trackFp.equals(fp))).watch().map((rows) => rows.isNotEmpty);
+
+  // null 字段必须用 Value.absent()("不改这列");写成 Value(o.title ?? '') 会把列清空。
+  Future<void> _materializeOverride(TrackOverride o) =>
+      (update(tracks)..where((t) => t.fingerprint.equals(o.trackFp))).write(
+        TracksCompanion(
+          title: o.title == null ? const Value.absent() : Value(o.title!),
+          artist: o.artist == null ? const Value.absent() : Value(o.artist!),
+          album: o.album == null ? const Value.absent() : Value(o.album!),
+        ),
+      );
+
+  /// 写文本修正覆盖层并立即物化回 tracks(tracks 是全 UI 唯一显示源)。
+  /// 两步同事务:避免只写一半导致库里显示与覆盖层不一致。
+  ///
+  /// 传 null/省略 = 不改该项已有修正(合并语义);要清空全部修正用 clearTrackOverride。
+  Future<void> setTrackOverride(
+    String fp, {
+    String? title,
+    String? artist,
+    String? album,
+  }) => transaction(() async {
+    await into(trackOverrides).insertOnConflictUpdate(
+      TrackOverridesCompanion.insert(
+        trackFp: fp,
+        title: title == null ? const Value.absent() : Value(title),
+        artist: artist == null ? const Value.absent() : Value(artist),
+        album: album == null ? const Value.absent() : Value(album),
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    final o = await (select(
+      trackOverrides,
+    )..where((t) => t.trackFp.equals(fp))).getSingle();
+    await _materializeOverride(o);
+  });
+
+  Future<TrackOverride?> getTrackOverride(String fp) => (select(
+    trackOverrides,
+  )..where((t) => t.trackFp.equals(fp))).getSingleOrNull();
+
+  /// 撤销刮削的文本部分。调用侧随后用 applyFileTags 把文件原始标签写回 tracks。
+  Future<void> clearTrackOverride(String fp) =>
+      (delete(trackOverrides)..where((t) => t.trackFp.equals(fp))).go();
+
+  /// 把从文件重新读到的原始标签写回 tracks(撤销覆盖后恢复显示)。
+  Future<void> applyFileTags(
+    String fp, {
+    required String title,
+    required String artist,
+    required String album,
+  }) => (update(tracks)..where((t) => t.fingerprint.equals(fp))).write(
+    TracksCompanion(
+      title: Value(title),
+      artist: Value(artist),
+      album: Value(album),
+    ),
+  );
+
+  /// 重扫会把文件原始标签写回 tracks、盖掉文本修正;扫描结束后调用本方法
+  /// 重新叠加全部覆盖层。track_overrides 是耐久真相,tracks 是物化视图。
+  /// 用 batch:逐条 update 会让每个活跃 watchTracks 流每条重查一次(表级失效),
+  /// 与 batchUpsertTracks 同理;batch 亦是单事务,避免中途崩溃只叠加一半。
+  Future<void> reapplyAllOverrides() async {
+    final all = await select(trackOverrides).get();
+    await batch((b) {
+      for (final o in all) {
+        b.update(
+          tracks,
+          TracksCompanion(
+            title: o.title == null ? const Value.absent() : Value(o.title!),
+            artist: o.artist == null ? const Value.absent() : Value(o.artist!),
+            album: o.album == null ? const Value.absent() : Value(o.album!),
+          ),
+          where: (t) => t.fingerprint.equals(o.trackFp),
+        );
+      }
+    });
+  }
 }

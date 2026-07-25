@@ -190,4 +190,27 @@ void main() {
     all = await db.watchTracks('').first;
     expect(all.map((t) => t.title).toSet(), {'a.mp3'});
   });
+
+  test('重扫后文本修正仍生效(override 被重新叠加)', () async {
+    write('a.mp3', 'short');
+    await scanner.scan([tmp.path]).drain<void>();
+    final before = await db.watchTracks('').first;
+    final fp = before.single.fingerprint;
+
+    await db.setTrackOverride(fp, title: '修正后的标题');
+    var all = await db.watchTracks('').first;
+    expect(all.single.title, '修正后的标题');
+
+    // 只改 mtime（内容/size 不变，指纹也就不变）迫使重扫认为文件已变，
+    // 从而重读标签写回 tracks——这才是测试"override 被重新叠加"而非
+    // "指纹变了导致 override 对不上号"的正确姿势。
+    final f = File('${tmp.path}/a.mp3');
+    f.setLastModifiedSync(
+      f.lastModifiedSync().add(const Duration(seconds: 5)),
+    );
+    await scanner.scan([tmp.path]).drain<void>();
+
+    all = await db.watchTracks('').first;
+    expect(all.single.title, '修正后的标题');
+  });
 }

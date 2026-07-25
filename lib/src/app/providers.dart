@@ -1,10 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 
 import '../data/database.dart';
 import '../library/scanner.dart';
 import '../library/tag_reader.dart';
 import '../playback/audio_engine.dart';
 import '../playback/playback_controller.dart';
+import '../scraper/itunes_source.dart';
+import '../scraper/lrclib_source.dart';
+import '../scraper/musicbrainz_source.dart';
+import '../scraper/scraper_service.dart';
 
 /// database 与 engine 在 main() 里用 overrideWithValue 注入（测试同理）。
 final databaseProvider = Provider<AppDatabase>(
@@ -71,3 +79,30 @@ final favoritesProvider = StreamProvider<List<String>>(
 final isFavoriteProvider = StreamProvider.autoDispose.family<bool, String>(
   (ref, fp) => ref.watch(databaseProvider).watchIsFavorite(fp),
 );
+
+/// 解析曲目封面的伴随文件路径:同名 .jpg 优先,其次 .png;都没有返回 null。
+/// (内嵌封面的读取留到后续增强——M2-B 的封面来源是刮削写下的伴随文件。)
+Future<String?> resolveCoverPath(String audioPath) async {
+  for (final ext in const ['.jpg', '.png']) {
+    final candidate = p.setExtension(audioPath, ext);
+    if (await File(candidate).exists()) return candidate;
+  }
+  return null;
+}
+
+/// 单曲封面路径;autoDispose.family:列表滚动/页面关闭即释放。
+final coverArtProvider = FutureProvider.autoDispose.family<String?, String>(
+  (ref, audioPath) => resolveCoverPath(audioPath),
+);
+
+/// 三源刮削服务。http.Client 在此统一注入,便于测试替换。
+final scraperServiceProvider = Provider<ScraperService>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return ScraperService(
+    matchSources: [ITunesSource(client), MusicBrainzSource(client)],
+    lyricsSources: [LrclibSource(client)],
+    db: ref.watch(databaseProvider),
+    httpClient: client,
+  );
+});

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../data/database.dart';
+import 'scrape_screen.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -123,9 +124,15 @@ class _TrackMenu extends ConsumerWidget {
           icon: const Icon(Icons.more_vert),
           onSelected: (v) {
             if (v == 'add') _addToPlaylist(context, ref, playlists);
+            if (v == 'scrape') {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ScrapeScreen(track: track)),
+              );
+            }
           },
           itemBuilder: (_) => const [
             PopupMenuItem(value: 'add', child: Text('加入歌单')),
+            PopupMenuItem(value: 'scrape', child: Text('刮削')),
           ],
         ),
       ],

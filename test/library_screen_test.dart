@@ -89,6 +89,14 @@ void main() {
     expect(items!.length, 1);
   });
 
+  testWidgets('曲目 ⋮ 菜单有「刮削」项', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    expect(find.text('刮削'), findsOneWidget);
+  });
+
   testWidgets('红心按钮切换收藏', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();

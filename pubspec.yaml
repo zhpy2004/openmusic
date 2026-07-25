@@ -49,6 +49,7 @@ dependencies:
   # template disables (android.builtInKotlin=false) -> its Kotlin never
   # compiles. 10.3.10 applies KGP itself and uses flutter.compileSdkVersion.
   file_picker: ^10.3.10
+  http: ^1.2.0
   permission_handler: ^11.3.0
   path: ^1.9.0
   path_provider: ^2.1.0

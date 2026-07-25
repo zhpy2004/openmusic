@@ -159,6 +159,11 @@ class LibraryScanner {
       }
     }
     await _db.deleteTracksNotIn(keep);
+
+    // 重扫按文件标签覆写了 tracks，会盖掉刮削的文本修正；这里重新叠加覆盖层。
+    // track_overrides 是耐久真相，tracks 只是物化的显示视图。
+    await _db.reapplyAllOverrides();
+
     yield ScanProgress(
       scanned: files.length,
       total: files.length,

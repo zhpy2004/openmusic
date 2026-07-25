@@ -1,3 +1,5 @@
+import 'dart:io';
+
 // hide RepeatMode：Flutter material 也导出了同名 RepeatMode
 //（repeating_animation_builder），与 audio_engine.dart 的枚举 ambiguous。
 import 'package:flutter/material.dart' hide RepeatMode;
@@ -29,7 +31,28 @@ class NowPlayingScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.album, size: 160),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final cover = ref
+                          .watch(coverArtProvider(track.path))
+                          .value;
+                      if (cover == null) {
+                        return const Icon(Icons.album, size: 160);
+                      }
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          File(cover),
+                          width: 160,
+                          height: 160,
+                          fit: BoxFit.cover,
+                          // 封面文件被删/损坏时不崩,回落占位图
+                          errorBuilder: (_, _, _) =>
+                              const Icon(Icons.album, size: 160),
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 24),
                   Text(
                     track.title,

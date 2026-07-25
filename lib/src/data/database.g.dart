@@ -2031,6 +2031,370 @@ class PlayEventsCompanion extends UpdateCompanion<PlayEvent> {
   }
 }
 
+class $TrackOverridesTable extends TrackOverrides
+    with TableInfo<$TrackOverridesTable, TrackOverride> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrackOverridesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _trackFpMeta = const VerificationMeta(
+    'trackFp',
+  );
+  @override
+  late final GeneratedColumn<String> trackFp = GeneratedColumn<String>(
+    'track_fp',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artistMeta = const VerificationMeta('artist');
+  @override
+  late final GeneratedColumn<String> artist = GeneratedColumn<String>(
+    'artist',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumMeta = const VerificationMeta('album');
+  @override
+  late final GeneratedColumn<String> album = GeneratedColumn<String>(
+    'album',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    trackFp,
+    title,
+    artist,
+    album,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'track_overrides';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TrackOverride> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('track_fp')) {
+      context.handle(
+        _trackFpMeta,
+        trackFp.isAcceptableOrUnknown(data['track_fp']!, _trackFpMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackFpMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('artist')) {
+      context.handle(
+        _artistMeta,
+        artist.isAcceptableOrUnknown(data['artist']!, _artistMeta),
+      );
+    }
+    if (data.containsKey('album')) {
+      context.handle(
+        _albumMeta,
+        album.isAcceptableOrUnknown(data['album']!, _albumMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {trackFp};
+  @override
+  TrackOverride map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TrackOverride(
+      trackFp: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}track_fp'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      ),
+      artist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artist'],
+      ),
+      album: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}album'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TrackOverridesTable createAlias(String alias) {
+    return $TrackOverridesTable(attachedDatabase, alias);
+  }
+}
+
+class TrackOverride extends DataClass implements Insertable<TrackOverride> {
+  final String trackFp;
+  final String? title;
+  final String? artist;
+  final String? album;
+  final int updatedAt;
+  const TrackOverride({
+    required this.trackFp,
+    this.title,
+    this.artist,
+    this.album,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['track_fp'] = Variable<String>(trackFp);
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    if (!nullToAbsent || artist != null) {
+      map['artist'] = Variable<String>(artist);
+    }
+    if (!nullToAbsent || album != null) {
+      map['album'] = Variable<String>(album);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  TrackOverridesCompanion toCompanion(bool nullToAbsent) {
+    return TrackOverridesCompanion(
+      trackFp: Value(trackFp),
+      title: title == null && nullToAbsent
+          ? const Value.absent()
+          : Value(title),
+      artist: artist == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artist),
+      album: album == null && nullToAbsent
+          ? const Value.absent()
+          : Value(album),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory TrackOverride.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TrackOverride(
+      trackFp: serializer.fromJson<String>(json['trackFp']),
+      title: serializer.fromJson<String?>(json['title']),
+      artist: serializer.fromJson<String?>(json['artist']),
+      album: serializer.fromJson<String?>(json['album']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'trackFp': serializer.toJson<String>(trackFp),
+      'title': serializer.toJson<String?>(title),
+      'artist': serializer.toJson<String?>(artist),
+      'album': serializer.toJson<String?>(album),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  TrackOverride copyWith({
+    String? trackFp,
+    Value<String?> title = const Value.absent(),
+    Value<String?> artist = const Value.absent(),
+    Value<String?> album = const Value.absent(),
+    int? updatedAt,
+  }) => TrackOverride(
+    trackFp: trackFp ?? this.trackFp,
+    title: title.present ? title.value : this.title,
+    artist: artist.present ? artist.value : this.artist,
+    album: album.present ? album.value : this.album,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  TrackOverride copyWithCompanion(TrackOverridesCompanion data) {
+    return TrackOverride(
+      trackFp: data.trackFp.present ? data.trackFp.value : this.trackFp,
+      title: data.title.present ? data.title.value : this.title,
+      artist: data.artist.present ? data.artist.value : this.artist,
+      album: data.album.present ? data.album.value : this.album,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackOverride(')
+          ..write('trackFp: $trackFp, ')
+          ..write('title: $title, ')
+          ..write('artist: $artist, ')
+          ..write('album: $album, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(trackFp, title, artist, album, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TrackOverride &&
+          other.trackFp == this.trackFp &&
+          other.title == this.title &&
+          other.artist == this.artist &&
+          other.album == this.album &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
+  final Value<String> trackFp;
+  final Value<String?> title;
+  final Value<String?> artist;
+  final Value<String?> album;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const TrackOverridesCompanion({
+    this.trackFp = const Value.absent(),
+    this.title = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.album = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TrackOverridesCompanion.insert({
+    required String trackFp,
+    this.title = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.album = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : trackFp = Value(trackFp),
+       updatedAt = Value(updatedAt);
+  static Insertable<TrackOverride> custom({
+    Expression<String>? trackFp,
+    Expression<String>? title,
+    Expression<String>? artist,
+    Expression<String>? album,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (trackFp != null) 'track_fp': trackFp,
+      if (title != null) 'title': title,
+      if (artist != null) 'artist': artist,
+      if (album != null) 'album': album,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TrackOverridesCompanion copyWith({
+    Value<String>? trackFp,
+    Value<String?>? title,
+    Value<String?>? artist,
+    Value<String?>? album,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return TrackOverridesCompanion(
+      trackFp: trackFp ?? this.trackFp,
+      title: title ?? this.title,
+      artist: artist ?? this.artist,
+      album: album ?? this.album,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (trackFp.present) {
+      map['track_fp'] = Variable<String>(trackFp.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (artist.present) {
+      map['artist'] = Variable<String>(artist.value);
+    }
+    if (album.present) {
+      map['album'] = Variable<String>(album.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackOverridesCompanion(')
+          ..write('trackFp: $trackFp, ')
+          ..write('title: $title, ')
+          ..write('artist: $artist, ')
+          ..write('album: $album, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2040,6 +2404,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PlaylistItemsTable playlistItems = $PlaylistItemsTable(this);
   late final $FavoritesTable favorites = $FavoritesTable(this);
   late final $PlayEventsTable playEvents = $PlayEventsTable(this);
+  late final $TrackOverridesTable trackOverrides = $TrackOverridesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2051,6 +2416,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     playlistItems,
     favorites,
     playEvents,
+    trackOverrides,
   ];
 }
 
@@ -3167,6 +3533,208 @@ typedef $$PlayEventsTableProcessedTableManager =
       PlayEvent,
       PrefetchHooks Function()
     >;
+typedef $$TrackOverridesTableCreateCompanionBuilder =
+    TrackOverridesCompanion Function({
+      required String trackFp,
+      Value<String?> title,
+      Value<String?> artist,
+      Value<String?> album,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$TrackOverridesTableUpdateCompanionBuilder =
+    TrackOverridesCompanion Function({
+      Value<String> trackFp,
+      Value<String?> title,
+      Value<String?> artist,
+      Value<String?> album,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$TrackOverridesTableFilterComposer
+    extends Composer<_$AppDatabase, $TrackOverridesTable> {
+  $$TrackOverridesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get trackFp => $composableBuilder(
+    column: $table.trackFp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TrackOverridesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TrackOverridesTable> {
+  $$TrackOverridesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get trackFp => $composableBuilder(
+    column: $table.trackFp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TrackOverridesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TrackOverridesTable> {
+  $$TrackOverridesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get trackFp =>
+      $composableBuilder(column: $table.trackFp, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get artist =>
+      $composableBuilder(column: $table.artist, builder: (column) => column);
+
+  GeneratedColumn<String> get album =>
+      $composableBuilder(column: $table.album, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TrackOverridesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TrackOverridesTable,
+          TrackOverride,
+          $$TrackOverridesTableFilterComposer,
+          $$TrackOverridesTableOrderingComposer,
+          $$TrackOverridesTableAnnotationComposer,
+          $$TrackOverridesTableCreateCompanionBuilder,
+          $$TrackOverridesTableUpdateCompanionBuilder,
+          (
+            TrackOverride,
+            BaseReferences<_$AppDatabase, $TrackOverridesTable, TrackOverride>,
+          ),
+          TrackOverride,
+          PrefetchHooks Function()
+        > {
+  $$TrackOverridesTableTableManager(
+    _$AppDatabase db,
+    $TrackOverridesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrackOverridesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TrackOverridesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TrackOverridesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> trackFp = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> artist = const Value.absent(),
+                Value<String?> album = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TrackOverridesCompanion(
+                trackFp: trackFp,
+                title: title,
+                artist: artist,
+                album: album,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String trackFp,
+                Value<String?> title = const Value.absent(),
+                Value<String?> artist = const Value.absent(),
+                Value<String?> album = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TrackOverridesCompanion.insert(
+                trackFp: trackFp,
+                title: title,
+                artist: artist,
+                album: album,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TrackOverridesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TrackOverridesTable,
+      TrackOverride,
+      $$TrackOverridesTableFilterComposer,
+      $$TrackOverridesTableOrderingComposer,
+      $$TrackOverridesTableAnnotationComposer,
+      $$TrackOverridesTableCreateCompanionBuilder,
+      $$TrackOverridesTableUpdateCompanionBuilder,
+      (
+        TrackOverride,
+        BaseReferences<_$AppDatabase, $TrackOverridesTable, TrackOverride>,
+      ),
+      TrackOverride,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3183,4 +3751,6 @@ class $AppDatabaseManager {
       $$FavoritesTableTableManager(_db, _db.favorites);
   $$PlayEventsTableTableManager get playEvents =>
       $$PlayEventsTableTableManager(_db, _db.playEvents);
+  $$TrackOverridesTableTableManager get trackOverrides =>
+      $$TrackOverridesTableTableManager(_db, _db.trackOverrides);
 }

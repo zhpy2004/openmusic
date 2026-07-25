@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import '../app/providers.dart';
 import '../library/m3u8.dart';
 import 'now_playing_bar.dart';
+import 'scrape_screen.dart';
 
 class PlaylistDetailScreen extends ConsumerWidget {
   const PlaylistDetailScreen({
@@ -127,12 +128,31 @@ class PlaylistDetailScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: t == null ? Text(it.fp) : Text(t.artist),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      tooltip: '移除',
-                      onPressed: () => ref
-                          .read(databaseProvider)
-                          .removeFromPlaylist(uuid, it.fp),
+                    trailing: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (v) {
+                        if (v == 'remove') {
+                          ref
+                              .read(databaseProvider)
+                              .removeFromPlaylist(uuid, it.fp);
+                        }
+                        if (v == 'scrape' && t != null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ScrapeScreen(track: t),
+                            ),
+                          );
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(value: 'remove', child: Text('移除')),
+                        // 缺失曲目没有 tracks 行,无从刮削
+                        if (t != null)
+                          const PopupMenuItem(
+                            value: 'scrape',
+                            child: Text('刮削'),
+                          ),
+                      ],
                     ),
                     onTap: t == null
                         ? null
