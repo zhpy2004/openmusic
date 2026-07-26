@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/library_setup.dart';
 import '../ui/library_screen.dart';
@@ -139,6 +140,8 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
 
     return MaterialApp(
       title: 'OpenMusic',
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
       darkTheme: ThemeData(
         colorSchemeSeed: Colors.teal,
