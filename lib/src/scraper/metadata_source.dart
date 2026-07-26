@@ -74,7 +74,9 @@ String _norm(String s) =>
 
 /// 极简相似度:归一化后互相包含即高分,否则按公共字符比例。够用于候选排序,
 /// 不追求准确率——最终由用户点选,排序只是把"看起来最像的"顶上去。
-double _similarity(String a, String b) {
+/// 归一化后的极简相似度:相等=1,互相包含=0.8,否则按公共字符比例。
+/// 供候选排序(rankMatches)与批量自动应用门槛(isConfidentMatch)共用。
+double similarityScore(String a, String b) {
   final x = _norm(a), y = _norm(b);
   if (x.isEmpty || y.isEmpty) return 0;
   if (x == y) return 1;
@@ -87,10 +89,20 @@ double _similarity(String a, String b) {
 /// 按"与原曲目标题/歌手的相似度"降序;同分时有封面的排前。不做自动选中。
 List<MatchCandidate> rankMatches(TrackQuery q, List<MatchCandidate> items) {
   double score(MatchCandidate c) =>
-      _similarity(q.title, c.title) * 2 +
-      _similarity(q.artist, c.artist) +
+      similarityScore(q.title, c.title) * 2 +
+      similarityScore(q.artist, c.artist) +
       (c.coverUrl != null ? 0.1 : 0);
   final out = List<MatchCandidate>.of(items);
   out.sort((a, b) => score(b).compareTo(score(a)));
   return out;
+}
+
+/// 批量自动应用封面的门槛:标题足够像 且(歌手足够像 或 原歌手为空)。
+/// 阈值 0.8 = similarityScore 里"完全相等或互相包含"档,保守——防止给泛标题
+/// 曲目糊错封面。
+bool isConfidentMatch(TrackQuery q, MatchCandidate c) {
+  final titleOk = similarityScore(q.title, c.title) >= 0.8;
+  final artistOk =
+      q.artist.isEmpty || similarityScore(q.artist, c.artist) >= 0.8;
+  return titleOk && artistOk;
 }

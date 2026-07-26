@@ -69,20 +69,24 @@ void main() {
     final db = AppDatabase(testExecutor());
     addTearDown(db.close);
 
-    final container = ProviderContainer(overrides: [
-      audioEngineProvider.overrideWithValue(engine),
-      databaseProvider.overrideWithValue(db),
-      lyricsProvider('/a').overrideWith((ref) async => null),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        audioEngineProvider.overrideWithValue(engine),
+        databaseProvider.overrideWithValue(db),
+        lyricsProvider('/a').overrideWith((ref) async => null),
+      ],
+    );
     addTearDown(container.dispose);
 
     final controller = container.read(playbackControllerProvider);
     await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
 
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: const MaterialApp(home: NowPlayingScreen()),
-    ));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: NowPlayingScreen()),
+      ),
+    );
     await tester.pump();
 
     // 默认封面视图:占位专辑图标在
@@ -99,27 +103,75 @@ void main() {
     final db = AppDatabase(testExecutor());
     addTearDown(db.close);
 
-    final container = ProviderContainer(overrides: [
-      audioEngineProvider.overrideWithValue(engine),
-      databaseProvider.overrideWithValue(db),
-      lyricsProvider('/a').overrideWith((ref) async => const Lyrics(
-            [LrcLine(Duration(seconds: 1), '歌词一句')],
-            true,
-          )),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        audioEngineProvider.overrideWithValue(engine),
+        databaseProvider.overrideWithValue(db),
+        lyricsProvider('/a').overrideWith(
+          (ref) async =>
+              const Lyrics([LrcLine(Duration(seconds: 1), '歌词一句')], true),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
 
     final controller = container.read(playbackControllerProvider);
     await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
 
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: const MaterialApp(home: NowPlayingScreen()),
-    ));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: NowPlayingScreen()),
+      ),
+    );
     await tester.pump();
     await tester.tap(find.byIcon(Icons.album));
     await tester.pump();
     await tester.pump();
     expect(find.text('歌词一句'), findsOneWidget);
+  });
+
+  testWidgets('歌词视图:点 ▶ seek 不翻面;点歌词区其他地方翻回封面', (tester) async {
+    final engine = FakeAudioEngine();
+    final db = AppDatabase(testExecutor());
+    addTearDown(db.close);
+
+    final container = ProviderContainer(
+      overrides: [
+        audioEngineProvider.overrideWithValue(engine),
+        databaseProvider.overrideWithValue(db),
+        lyricsProvider('/a').overrideWith(
+          (ref) async =>
+              const Lyrics([LrcLine(Duration(seconds: 1), '歌词一句')], true),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(playbackControllerProvider);
+    await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: NowPlayingScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.album));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('歌词一句'), findsOneWidget);
+    // 点焦点框的 ▶:seek,不翻面(内层按钮手势胜出)
+    await tester.tap(find.byIcon(Icons.play_arrow));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(engine.calls, contains('seek(0:00:01.000000)'));
+    expect(find.text('歌词一句'), findsOneWidget); // 仍在歌词视图
+    // 点歌词区其他地方(歌词文字上,无行级手势):翻回封面
+    await tester.tap(find.text('歌词一句'));
+    await tester.pump();
+    expect(find.byIcon(Icons.album), findsOneWidget); // 回到封面
+    expect(find.text('歌词一句'), findsNothing);
   });
 }

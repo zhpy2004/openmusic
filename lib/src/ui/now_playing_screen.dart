@@ -42,8 +42,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () =>
-                          setState(() => _showLyrics = !_showLyrics),
+                      onTap: () => setState(() => _showLyrics = !_showLyrics),
                       child: _showLyrics
                           ? _lyricsArea(track.path, engine)
                           : _coverArea(track.path),
@@ -135,9 +134,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                               ? Icons.pause_circle
                               : Icons.play_circle,
                         ),
-                        onPressed: () => controller.playing
-                            ? engine.pause()
-                            : engine.play(),
+                        onPressed: () =>
+                            controller.playing ? engine.pause() : engine.play(),
                       ),
                       IconButton(
                         iconSize: 48,

@@ -11,6 +11,7 @@ import '../library/tag_reader.dart';
 import '../lyrics/lrc.dart';
 import '../playback/audio_engine.dart';
 import '../playback/playback_controller.dart';
+import '../scraper/batch_scraper_service.dart';
 import '../scraper/itunes_source.dart';
 import '../scraper/lrclib_source.dart';
 import '../scraper/musicbrainz_source.dart';
@@ -124,3 +125,9 @@ final scraperServiceProvider = Provider<ScraperService>((ref) {
     httpClient: client,
   );
 });
+
+/// 批量刮削服务:复用同一个 scraperServiceProvider(其 MusicBrainz 源自带
+/// 1req/s 限流,批量顺序调用自动受限)。
+final batchScraperServiceProvider = Provider<BatchScraperService>(
+  (ref) => BatchScraperService(ref.watch(scraperServiceProvider)),
+);

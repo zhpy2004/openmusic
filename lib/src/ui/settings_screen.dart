@@ -1,83 +1,40 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:permission_handler/permission_handler.dart';
 
 import '../app/providers.dart';
-import '../library/scanner.dart';
+import '../library/library_setup.dart';
+import 'batch_scrape_runner.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  static const _androidDefaultRoot = '/storage/emulated/0/Music';
-
-  /// 归一化扫描根（T3 审查遗留）：p.normalize 收敛分隔符/点段，Windows 盘符统一大写。
-  static String _normalizeRoot(String path) {
-    var n = p.normalize(path);
-    if (Platform.isWindows && n.length >= 2 && n[1] == ':') {
-      n = n[0].toUpperCase() + n.substring(1);
-    }
-    return n;
-  }
-
   Future<void> _addFolder(BuildContext context, WidgetRef ref) async {
-    final db = ref.read(databaseProvider);
-    if (Platform.isAndroid) {
-      // MVP：Android 固定扫描系统音乐目录（SAF 目录选择与 dart:io 不兼容，见 spec 风险）
-      // 权限分流（T9 审查裁定 T10 执行）：permission_handler_android 12.1.0 里
-      // Permission.audio 在 SDK<33 映射空权限列表，恒 DENIED、不弹窗；
-      // Permission.storage 则相反，在 SDK<33 映射 READ_EXTERNAL_STORAGE（真弹窗），
-      // 在 SDK33+ 映射空列表恒 DENIED。两者在不同 SDK 上互补，依次请求即可覆盖全版本。
-      var status = await Permission.audio.request();
-      if (!status.isGranted) {
-        status = await Permission.storage.request();
-      }
-      if (!status.isGranted) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('需要音频读取权限才能扫描')));
-        }
-        return;
-      }
-      // Android 13+：媒体通知是运行时权限。不授权则播放时 audio_service 的前台服务
-      // 起不来(mAllowStartForeground false)、通知栏/锁屏无媒体控件。best-effort:
-      // 拒了也不挡入库,只是没有系统媒体控制。
-      await Permission.notification.request();
-      await db.addScanRoot(_androidDefaultRoot);
-    } else {
-      final path = await FilePicker.platform.getDirectoryPath();
-      if (path != null) await db.addScanRoot(_normalizeRoot(path));
+    final result = await addScanFolder(ref.read(databaseProvider));
+    if (result == AddFolderResult.permissionDenied && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('需要音频读取权限才能扫描')));
     }
   }
 
   Future<void> _scan(BuildContext context, WidgetRef ref) async {
-    final db = ref.read(databaseProvider);
-    final scanner = ref.read(scannerProvider);
-    final notifier = ref.read(scanProgressProvider.notifier); // unmount 后仍安全
+    final notifier = ref.read(scanProgressProvider.notifier);
     final problemsNotifier = ref.read(lastScanProblemsProvider.notifier);
-    problemsNotifier.state = const []; // 开扫清空上次结果
-    notifier.state = const ScanProgress(scanned: 0, total: 0); // 立即占位,闭双击重入窗口
     try {
-      final roots = await db.watchScanRoots().first;
-      await for (final progress in scanner.scan(roots)) {
-        if (progress.done) {
-          // done 事件携带完整问题清单,持久保留供扫描后查看
-          problemsNotifier.state = progress.problems;
-        }
-        notifier.state = progress.done ? null : progress;
-      }
+      await runLibraryScan(
+        db: ref.read(databaseProvider),
+        scanner: ref.read(scannerProvider),
+        onProgress: (p) => notifier.state = p,
+        onProblems: (probs) => problemsNotifier.state = probs,
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('扫描出错: $e')));
       }
-    } finally {
-      notifier.state = null;
     }
   }
 
@@ -149,7 +106,42 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.auto_fix_high),
+          title: const Text('批量补全封面/歌词'),
+          subtitle: const Text('给缺封面或缺歌词的曲目自动补全(可取消)'),
+          onTap: () => _batchScrape(context, ref),
+        ),
       ],
+    );
+  }
+
+  Future<void> _batchScrape(BuildContext context, WidgetRef ref) async {
+    final db = ref.read(databaseProvider);
+    final service = ref.read(batchScraperServiceProvider);
+    final tracks = await db.watchTracks('').first; // 全库快照
+    if (!context.mounted) return;
+    var cancelled = false;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        content: BatchScrapeRunner(
+          progressStream: service.run(tracks, shouldCancel: () => cancelled),
+          onFinished: (_) {},
+          onCancel: () {
+            cancelled = true;
+            Navigator.of(ctx).pop();
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
     );
   }
 }
