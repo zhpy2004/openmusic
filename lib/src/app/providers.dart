@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:path/path.dart' as p;
 import '../data/database.dart';
 import '../library/scanner.dart';
 import '../library/tag_reader.dart';
+import '../lyrics/lrc.dart';
 import '../playback/audio_engine.dart';
 import '../playback/playback_controller.dart';
 import '../scraper/itunes_source.dart';
@@ -93,6 +95,22 @@ Future<String?> resolveCoverPath(String audioPath) async {
 /// 单曲封面路径;autoDispose.family:列表滚动/页面关闭即释放。
 final coverArtProvider = FutureProvider.autoDispose.family<String?, String>(
   (ref, audioPath) => resolveCoverPath(audioPath),
+);
+
+/// 读取并解析曲目歌词 sidecar:同名 .lrc 存在则解析,否则 null。
+/// allowMalformed 防个别坏字节令整篇解码失败;解析后无有效行也返回 null。
+Future<Lyrics?> resolveLyrics(String audioPath) async {
+  final path = p.setExtension(audioPath, '.lrc');
+  final f = File(path);
+  if (!await f.exists()) return null;
+  final raw = utf8.decode(await f.readAsBytes(), allowMalformed: true);
+  final lyrics = parseLrc(raw);
+  return lyrics.isEmpty ? null : lyrics;
+}
+
+/// 单曲歌词;autoDispose.family:切歌/关页即释放(同 coverArtProvider)。
+final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, String>(
+  (ref, audioPath) => resolveLyrics(audioPath),
 );
 
 /// 三源刮削服务。http.Client 在此统一注入,便于测试替换。

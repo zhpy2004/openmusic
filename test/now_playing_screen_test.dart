@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openmusic/src/app/providers.dart';
 import 'package:openmusic/src/data/database.dart';
+import 'package:openmusic/src/lyrics/lrc.dart';
 import 'package:openmusic/src/ui/now_playing_screen.dart';
 
 import 'helpers/db.dart';
@@ -61,5 +62,64 @@ void main() {
 
     expect(find.text('3:25'), findsOneWidget);
     expect(find.text('0:42'), findsOneWidget);
+  });
+
+  testWidgets('点中央区翻到歌词区;lyricsProvider 为 null 时显示「暂无歌词」', (tester) async {
+    final engine = FakeAudioEngine();
+    final db = AppDatabase(testExecutor());
+    addTearDown(db.close);
+
+    final container = ProviderContainer(overrides: [
+      audioEngineProvider.overrideWithValue(engine),
+      databaseProvider.overrideWithValue(db),
+      lyricsProvider('/a').overrideWith((ref) async => null),
+    ]);
+    addTearDown(container.dispose);
+
+    final controller = container.read(playbackControllerProvider);
+    await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: NowPlayingScreen()),
+    ));
+    await tester.pump();
+
+    // 默认封面视图:占位专辑图标在
+    expect(find.byIcon(Icons.album), findsOneWidget);
+    // 点中央区翻面
+    await tester.tap(find.byIcon(Icons.album));
+    await tester.pump(); // setState
+    await tester.pump(); // lyricsProvider future(内存值,微任务即完成)
+    expect(find.text('暂无歌词'), findsOneWidget);
+  });
+
+  testWidgets('翻面后 lyricsProvider 有 synced 歌词时渲染 LyricsView', (tester) async {
+    final engine = FakeAudioEngine();
+    final db = AppDatabase(testExecutor());
+    addTearDown(db.close);
+
+    final container = ProviderContainer(overrides: [
+      audioEngineProvider.overrideWithValue(engine),
+      databaseProvider.overrideWithValue(db),
+      lyricsProvider('/a').overrideWith((ref) async => const Lyrics(
+            [LrcLine(Duration(seconds: 1), '歌词一句')],
+            true,
+          )),
+    ]);
+    addTearDown(container.dispose);
+
+    final controller = container.read(playbackControllerProvider);
+    await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: NowPlayingScreen()),
+    ));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.album));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('歌词一句'), findsOneWidget);
   });
 }
