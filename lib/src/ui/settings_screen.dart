@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/library_setup.dart';
 import 'batch_scrape_runner.dart';
@@ -47,6 +48,34 @@ class SettingsScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(8),
       children: [
+        Consumer(
+          builder: (context, ref, _) {
+            final pref = ref.watch(localePreferenceProvider).value ?? 'system';
+            final l10n = AppLocalizations.of(context)!;
+            return ListTile(
+              leading: const Icon(Icons.language),
+              title: Text(l10n.language),
+              trailing: DropdownButton<String>(
+                value: pref,
+                onChanged: (v) {
+                  if (v != null) {
+                    ref.read(databaseProvider).setSetting(kLocalePrefKey, v);
+                  }
+                },
+                items: [
+                  DropdownMenuItem(
+                    value: 'system',
+                    child: Text(l10n.languageSystem),
+                  ),
+                  // 语言名按惯例用该语言自身书写,不随界面语言变化
+                  const DropdownMenuItem(value: 'zh', child: Text('简体中文')),
+                  const DropdownMenuItem(value: 'en', child: Text('English')),
+                ],
+              ),
+            );
+          },
+        ),
+        const Divider(),
         const ListTile(
           title: Text('音乐文件夹', style: TextStyle(fontWeight: FontWeight.bold)),
         ),

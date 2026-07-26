@@ -9,8 +9,8 @@ void main() {
   setUp(() => db = AppDatabase(testExecutor()));
   tearDown(() => db.close());
 
-  test('schemaVersion 为 3', () {
-    expect(db.schemaVersion, 3);
+  test('schemaVersion 为 4', () {
+    expect(db.schemaVersion, 4);
   });
 
   test('覆盖表与既有表并存:插曲目 + 插覆盖各自可查', () async {

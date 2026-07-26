@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -130,4 +131,20 @@ final scraperServiceProvider = Provider<ScraperService>((ref) {
 /// 1req/s 限流,批量顺序调用自动受限)。
 final batchScraperServiceProvider = Provider<BatchScraperService>(
   (ref) => BatchScraperService(ref.watch(scraperServiceProvider)),
+);
+
+/// 语言偏好的存储键。取值:'system'(默认)/ 'zh' / 'en'。
+const kLocalePrefKey = 'locale';
+
+/// 把偏好字符串翻译成 MaterialApp.locale:
+/// null / 'system' / 无法识别的值 → null(交给 Flutter 跟随系统)。
+Locale? localeFromPreference(String? pref) => switch (pref) {
+  'zh' => const Locale('zh'),
+  'en' => const Locale('en'),
+  _ => null,
+};
+
+/// 当前语言偏好(原始字符串),随数据库变化即时更新。
+final localePreferenceProvider = StreamProvider<String?>(
+  (ref) => ref.watch(databaseProvider).watchSetting(kLocalePrefKey),
 );

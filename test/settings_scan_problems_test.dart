@@ -9,6 +9,7 @@ import 'package:openmusic/src/ui/settings_screen.dart';
 import 'package:path/path.dart' as p;
 
 import 'helpers/db.dart';
+import 'helpers/pump.dart';
 
 void main() {
   late AppDatabase db;
@@ -27,7 +28,7 @@ void main() {
 
   Widget app() => ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db)],
-    child: const MaterialApp(home: Scaffold(body: SettingsScreen())),
+    child: localizedApp(const Scaffold(body: SettingsScreen())),
   );
 
   testWidgets('扫描结束后问题清单持久显示（不可达根）', (tester) async {

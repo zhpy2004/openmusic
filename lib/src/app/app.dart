@@ -130,6 +130,7 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
   @override
   Widget build(BuildContext context) {
     final rootsAsync = ref.watch(scanRootsProvider);
+    final localePref = ref.watch(localePreferenceProvider).value;
     // 首次拿到 roots 值时一次性决定:空则进向导并锁存;此后 roots 变化(如向导内
     // 新增文件夹使其变非空)不再改变是否显示向导——只有跳过/完成能退出。
     if (!_decided && rootsAsync.hasValue) {
@@ -142,6 +143,7 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
       title: 'OpenMusic',
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      locale: localeFromPreference(localePref),
       theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
       darkTheme: ThemeData(
         colorSchemeSeed: Colors.teal,
