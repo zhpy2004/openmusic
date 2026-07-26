@@ -47,3 +47,9 @@ app.*.map.json
 
 # 开发过程文档(设计 spec / 实施计划 / 欠账清单)留在本地,不进公开仓库
 docs/
+
+# 发布签名:密码与密钥库绝不入库(keystore 本体在项目外 E:\openmusic-keystore\)
+android/key.properties
+*.jks
+*.keystore
+/dist/

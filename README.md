@@ -6,6 +6,19 @@
 
 > 当前 **v0.5.0**:播放骨架与曲库体验(歌单/收藏、刮削、歌词、建库引导)已完成,可日常使用。局域网同步开发中,见 [ROADMAP.md](ROADMAP.md)。
 
+## 下载
+
+到 [Releases](https://github.com/zhpy2004/openmusic/releases/latest) 页面下载:
+
+| 平台 | 文件 | 说明 |
+|---|---|---|
+| Windows | `openmusic-v0.5.0-windows-x64.zip` | 解压后双击 `openmusic.exe`,免安装。整个文件夹要保持完整 |
+| Android | `openmusic-v0.5.0-android-universal.apk` | **不确定选哪个就下这个**,通吃所有机型 |
+| Android | `openmusic-v0.5.0-android-arm64-v8a.apk` | 2017 年后的手机基本都是,体积小一半 |
+| Android | `openmusic-v0.5.0-android-armeabi-v7a.apk` | 较老的 32 位设备 |
+
+Android 侧装需要在系统里允许「安装未知来源应用」。APK 用固定密钥签名,后续版本可直接覆盖升级。
+
 ## 功能
 
 **建库**
