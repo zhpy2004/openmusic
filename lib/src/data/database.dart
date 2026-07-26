@@ -75,6 +75,16 @@ class TrackOverrides extends Table {
   Set<Column> get primaryKey => {trackFp};
 }
 
+/// 设备本地设置(key-value)。目前只存 `locale`,后续偏好可复用。
+/// 属于设备本地状态,不参与 M3 跨设备同步。
+class AppSettings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 /// 歌单成员 + 关联曲目(可能为 null=文件缺失/未扫描到)。
 class PlaylistEntry {
   const PlaylistEntry({required this.fp, required this.position, this.track});
@@ -92,6 +102,7 @@ class PlaylistEntry {
     Favorites,
     PlayEvents,
     TrackOverrides,
+    AppSettings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -100,7 +111,7 @@ class AppDatabase extends _$AppDatabase {
   final _rnd = Random();
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,8 +128,30 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await m.createTable(trackOverrides);
       }
+      // v3→v4:只新建本地设置表,其余表原样保留。
+      if (from < 4) {
+        await m.createTable(appSettings);
+      }
     },
   );
+
+  /// 读设置项;不存在返回 null。
+  Future<String?> getSetting(String key) async {
+    final row = await (select(
+      appSettings,
+    )..where((t) => t.key.equals(key))).getSingleOrNull();
+    return row?.value;
+  }
+
+  /// 写设置项(存在即覆盖)。
+  Future<void> setSetting(String key, String value) => into(
+    appSettings,
+  ).insertOnConflictUpdate(AppSetting(key: key, value: value));
+
+  /// 监听某个设置项,供 UI 即时响应(如切语言)。
+  Stream<String?> watchSetting(String key) => (select(
+    appSettings,
+  )..where((t) => t.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
 
   // insertOnConflictUpdate 默认只按主键（id）判定冲突；path 是单独的唯一约束，
   // 必须显式指定 conflict target，否则同 path 二次写入会因主键不冲突而尝试
