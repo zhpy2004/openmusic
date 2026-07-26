@@ -57,7 +57,9 @@ final scanProgressProvider = StateProvider<ScanProgress?>((ref) => null);
 /// 上次扫描的问题清单（损坏文件、不可达根）。scanProgress 在 done 事件即置 null、
 /// 无法承载事后可见的问题报告，故单列此 provider：扫描开始清空，done 后保留供
 /// 用户在设置页查看，点“清除”或下次扫描开始时重置。
-final lastScanProblemsProvider = StateProvider<List<String>>((ref) => const []);
+final lastScanProblemsProvider = StateProvider<List<ScanProblem>>(
+  (ref) => const [],
+);
 
 /// 歌单列表(按 updatedAt 倒序)。
 final playlistsProvider = StreamProvider<List<Playlist>>(

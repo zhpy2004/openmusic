@@ -17,6 +17,32 @@ const audioExtensions = {
   '.wav',
 };
 
+/// 扫描过程中的问题。**只带数据不带文案**——渲染成哪种语言由 UI 层决定
+/// (服务层拿不到 BuildContext,也不该依赖它)。
+sealed class ScanProblem {
+  const ScanProblem();
+}
+
+/// 扫描根不可达(本轮不清理其下曲目)。
+class RootUnreachable extends ScanProblem {
+  const RootUnreachable(this.path);
+  final String path;
+}
+
+/// 单个文件读取/解析失败。
+class FileFailed extends ScanProblem {
+  const FileFailed(this.path, this.error);
+  final String path;
+  final String error;
+}
+
+/// 批量写库失败。
+class BatchWriteFailed extends ScanProblem {
+  const BatchWriteFailed(this.count, this.error);
+  final int count;
+  final String error;
+}
+
 class ScanProgress {
   const ScanProgress({
     required this.scanned,
@@ -29,7 +55,7 @@ class ScanProgress {
   final int scanned;
   final int total;
   final String? currentPath;
-  final List<String> problems; // 损坏/读取失败的文件（spec §8）
+  final List<ScanProblem> problems; // 损坏/读取失败的文件（spec §8）
   final bool done;
 }
 
@@ -49,7 +75,7 @@ class LibraryScanner {
     //    会让同一文件出现两次，导致双倍 tag 读+指纹和虚高的 total）
     final files = <File>[];
     final seen = <String>{};
-    final problems = <String>[]; // 提前声明：不可达根的提示也要记进来
+    final problems = <ScanProblem>[]; // 提前声明：不可达根的提示也要记进来
     // existsSync() 为 false 的根（如 NAS/SD 卡离线）：不能当作"用户已移除
     // 该根"处理——下方 deleteTracksNotIn 是"文件即真相"式全量清理，若不
     // 把这些根排除在外，会把该根下所有已入库曲目当成"文件已消失"整棵删掉。
@@ -64,7 +90,7 @@ class LibraryScanner {
       );
       if (!dir.existsSync()) {
         unreachableRootDirs.add(dir.path);
-        problems.add('根目录不可达: $root(本轮不清理其下曲目)');
+        problems.add(RootUnreachable(root));
         continue;
       }
       for (final entity in dir.listSync(recursive: true, followLinks: false)) {
@@ -116,7 +142,7 @@ class LibraryScanner {
         // 周期上报+让出——1 万文件增量重扫若全程无 await/yield，
         // 会是主 isolate 一整段阻塞且进度流无事件。
       } catch (e) {
-        problems.add('${file.path}: $e'); // 单文件失败不中断（spec §8）
+        problems.add(FileFailed(file.path, '$e')); // 单文件失败不中断（spec §8）
       }
       // 批量 flush 放在单文件 try 之外：批失败是批级问题，不能记在
       // 当前文件头上，也不能把失败批留在缓冲里反复重试
@@ -174,12 +200,12 @@ class LibraryScanner {
 
   Future<void> _flush(
     List<TracksCompanion> pending,
-    List<String> problems,
+    List<ScanProblem> problems,
   ) async {
     try {
       await _db.batchUpsertTracks(List.of(pending));
     } catch (e) {
-      problems.add('批量写入失败（${pending.length} 条）: $e');
+      problems.add(BatchWriteFailed(pending.length, '$e'));
     } finally {
       pending.clear(); // 无论成败都清空，失败批不重试（下次扫描会重新发现）
     }

@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/library_setup.dart';
 import 'batch_scrape_runner.dart';
+import 'scan_problem_text.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -128,10 +129,13 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           ...lastProblems.map(
-            (msg) => ListTile(
+            (p) => ListTile(
               dense: true,
               leading: const Icon(Icons.error_outline, size: 20),
-              title: Text(msg, style: Theme.of(context).textTheme.bodySmall),
+              title: Text(
+                scanProblemText(context, p),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
           ),
         ],

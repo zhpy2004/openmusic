@@ -73,7 +73,9 @@ void main() {
     final all = await db.watchTracks('').first;
     expect(all.single.title, 'ok.mp3');
     expect(events.last.problems, hasLength(1));
-    expect(events.last.problems.single, contains('corrupt.mp3'));
+    final problem = events.last.problems.single;
+    expect(problem, isA<FileFailed>());
+    expect((problem as FileFailed).path, contains('corrupt.mp3'));
   });
 
   test('进度流：scanned 递增到 total', () async {
@@ -165,12 +167,13 @@ void main() {
     all = await db.watchTracks('').first;
     // b.mp3 保留（不可达 root 不清理），a.mp3 已被清出（可达 root 正常清理）。
     expect(all.map((t) => t.title).toSet(), {'b.mp3'});
+    // 问题是类型化对象(不含文案,渲染语言由 UI 层决定),断言类型与路径。
     expect(
       events.last.problems.any(
-        (p) => p.contains(tmpB.path) && p.contains('不可达'),
+        (p) => p is RootUnreachable && p.path == tmpB.path,
       ),
       isTrue,
-      reason: 'problems 应包含不可达根提示: ${events.last.problems}',
+      reason: 'problems 应包含不可达根: ${events.last.problems}',
     );
   });
 

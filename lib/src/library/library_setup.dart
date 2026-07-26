@@ -48,7 +48,7 @@ Future<void> runLibraryScan({
   required AppDatabase db,
   required LibraryScanner scanner,
   required void Function(ScanProgress?) onProgress,
-  required void Function(List<String>) onProblems,
+  required void Function(List<ScanProblem>) onProblems,
 }) async {
   onProblems(const []);
   onProgress(const ScanProgress(scanned: 0, total: 0));

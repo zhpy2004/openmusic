@@ -18,7 +18,7 @@ void main() {
     await db.addScanRoot(dir.path);
 
     final progresses = <ScanProgress?>[];
-    final problems = <List<String>>[];
+    final problems = <List<ScanProblem>>[];
 
     await runLibraryScan(
       db: db,
