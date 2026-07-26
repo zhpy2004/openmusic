@@ -1,53 +1,53 @@
-# 路线图
+[English](ROADMAP.md) | [简体中文](ROADMAP.zh-CN.md)
 
-单人维护的自用项目,范围靠负清单守住。每个里程碑都要求「做完即可独立使用」,不做半成品堆叠。
+# Roadmap
 
-## 已完成
+A single-maintainer project for personal use, kept in scope on purpose. Every milestone has to be independently usable when it lands — no stacking of half-finished features.
 
-### v0.1.0 — 播放骨架
-扫描建库 + 曲库列表 + 播放队列 + 双端系统集成(Android 通知栏/锁屏/蓝牙键、Windows SMTC)。验收标准:两台设备都能当日常播放器听歌。
+## Done
 
-### v0.2.0 — 歌单与收藏
-歌单增删改、❤️ 我喜欢的、M3U8 导入导出。曲目用内容指纹引用,歌单可保留文件暂时缺失的曲目(置灰),为跨设备同步铺路。
+### v0.1.0 — Playback skeleton
+Folder scanning, library list, playback queue, and system media integration on both platforms (Android notification/lock screen/Bluetooth keys, Windows SMTC). Bar to clear: both devices work as an everyday music player.
 
-### v0.3.0 — 刮削
-单曲手动刮削,三个开放源可插拔(iTunes / LRCLIB / MusicBrainz + Cover Art Archive)。核心裁决:**绝不改音频字节**,封面歌词落伴随文件、文本修正落覆盖表。
+### v0.2.0 — Playlists and favorites
+Playlist editing, favorites, M3U8 import/export. Tracks are referenced by content fingerprint, and playlists can hold tracks whose files are temporarily missing (shown greyed out) — groundwork for cross-device sync.
 
-### v0.4.0 — 歌词显示
-行级 LRC 滚动、当前行高亮、点句跳转、滚轮浏览与自动回位、纯文本兜底。
+### v0.3.0 — Metadata scraping
+Per-track scraping from three pluggable open sources (iTunes / LRCLIB / MusicBrainz + Cover Art Archive). Core constraint: **never modify audio bytes** — covers and lyrics go to sidecar files, text corrections to a database overlay.
 
-### v0.5.0 — 建库引导
-首启向导(选文件夹 → 扫描 → 批量补全 → 完成)+ 全库批量补全封面歌词(保守匹配,只补缺的)。
+### v0.4.0 — Lyrics
+Line-level LRC scrolling, current-line highlight, tap-to-seek, free browsing with automatic return, plain-text fallback.
 
-## 进行中
+### v0.5.0 — Library setup wizard
+First-run wizard (pick folder → scan → batch fill → done) plus whole-library batch fill for covers and lyrics, with conservative matching that only fills what's missing.
 
-### 局域网同步(下一个里程碑)
+## In progress
 
-项目的核心差异化。目标:**电脑上新增歌、建好歌单,手机一键拿到。**
+### LAN sync (next milestone)
 
-1. **发现** — mDNS 广播/监听 `_openmusic._tcp`
-2. **配对** — 首次连接两端弹 6 位配对码,人工确认后交换密钥;此后局域网内 HTTP + token 鉴权
-3. **元数据同步** — 交换实体清单(UUID + updated_at),按行 LWW 合并;播放记录取并集;歌单定义全量同步
-4. **选择性文件同步** — 每台设备勾选哪些歌单「在本机保留文件」,按内容指纹清单只拉缺失文件,HTTP Range 断点续传。未镜像歌单里缺文件的曲目在界面置灰,可单曲点击「从配对设备获取」
-5. **安全底线** — **同步永不删除文件**。删除只能在设备上手动进行,宁可留重复,不可丢歌
+The feature this project exists for. Goal: **add music and build a playlist on the desktop, then get it on your phone with one tap.**
 
-### 打磨发布
+1. **Discovery** — mDNS advertise/browse for `_openmusic._tcp`
+2. **Pairing** — on first connection both ends show a 6-digit code; after manual confirmation they exchange keys, and subsequent traffic is HTTP + token auth over the LAN
+3. **Metadata sync** — exchange entity manifests (UUID + `updated_at`), merge per-row last-write-wins; play history is a union; playlist definitions sync in full
+4. **Selective file sync** — each device chooses which playlists to "keep files for locally", then compares fingerprint manifests and pulls only what's missing, with HTTP Range resume. Tracks missing files in non-mirrored playlists appear greyed out with a per-track "fetch from paired device" action
+5. **Safety floor** — **sync never deletes files.** Deletion is a manual, on-device action. Better a duplicate than a lost track
 
-1 万曲目规模的列表与搜索性能、大曲库首次扫描的响应性、gapless 实测验证。验收标准:连续两周主力使用无致命问题。
+### Polish and release
 
-## 已知问题
+List and search performance at 10k tracks, first-scan responsiveness on large libraries, gapless verification in the field. Bar to clear: two straight weeks as the primary player with no showstoppers.
 
-- **Android 通知栏「播放」键无法从暂停恢复,锁屏无媒体控件**——media_kit(libmpv 自带音频焦点)与 audio_service 在通知触发的 resume 路径上抢音频焦点。应用内播放控制完全正常。修复需要统一音频焦点归属,得在真机上反复验证。
-- 刮削源(iTunes / MusicBrainz)对简体中文曲库常返回繁体标题。已缓解:「应用文本修正」默认关闭,封面与歌词照常应用。根治需要引入简繁转换。
-- 批量补全的歌词应用没有相似度门槛(封面有)。LRCLIB 服务端按标题+歌手+时长匹配,且歌词是可删除的伴随文件,风险可控。
-- 大曲库(1000+)的列表滚动与搜索性能、蓝牙耳机媒体键尚未实测。
+## Known issues
 
-## 明确不做
+- **Android: the notification "play" button doesn't resume from pause, and there's no lock screen control.** media_kit (libmpv manages its own audio focus) and audio_service contend for focus on the notification-triggered resume path. In-app playback controls work fine. Fixing it means unifying focus ownership, which needs repeated verification on real hardware.
+- Scraping sources (iTunes / MusicBrainz) often return Traditional Chinese titles for Simplified Chinese libraries. Mitigated by defaulting "apply text corrections" to off; covers and lyrics still apply. A real fix needs a Simplified/Traditional converter.
+- Batch lyrics fill has no similarity threshold (covers do). LRCLIB matches server-side on title + artist + duration, and lyrics are deletable sidecar files, so the risk is contained.
+- List scrolling and search performance on large libraries (1000+), and Bluetooth headset media keys, are not yet measured.
 
-- **在线音源聚合 / 平台曲库** — 永久不做
-- **账号体系 / 云服务** — 永久不做
-- 当前版本不做:iOS / macOS / Linux、均衡器、Chromecast / Android Auto、Subsonic 客户端、逐字歌词
+## Out of scope for now
 
-## 之后可能做
+iOS / macOS / Linux, equalizer, Chromecast / Android Auto, Subsonic client mode, word-level karaoke lyrics.
 
-按需求热度排:逐字歌词 + 桌面歌词 → Subsonic 客户端模式 → 均衡器 → Android Auto。
+## Maybe later
+
+Roughly by demand: word-level + desktop lyrics → Subsonic client mode → equalizer → Android Auto.

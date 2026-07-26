@@ -1,82 +1,85 @@
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 # OpenMusic
 
-本地优先的轻量音乐播放器,Windows + Android 双端(Flutter 单代码库)。
+A local-first, lightweight music player for Windows and Android, built with Flutter from a single codebase.
 
-主打两件事:**从零建库不费劲**、**两台设备一键同步**。不做在线音源聚合,不做账号云服务——你的曲库是你自己的文件。
+It aims to do two things well: **make building your library painless**, and **keep two devices in sync with one tap**. Your library stays your own files on your own disk.
 
-> 当前 **v0.5.0**:播放骨架与曲库体验(歌单/收藏、刮削、歌词、建库引导)已完成,可日常使用。局域网同步开发中,见 [ROADMAP.md](ROADMAP.md)。
+> **v0.5.0** — playback and library experience (playlists/favorites, metadata scraping, lyrics, setup wizard) are complete and usable day to day. LAN sync is in development; see [ROADMAP.md](ROADMAP.md).
 
-## 下载
+## Download
 
-到 [Releases](https://github.com/zhpy2004/openmusic/releases/latest) 页面下载:
+Grab the latest build from [Releases](https://github.com/zhpy2004/openmusic/releases/latest):
 
-| 平台 | 文件 | 说明 |
+| Platform | File | Notes |
 |---|---|---|
-| Windows | `openmusic-v0.5.0-windows-x64.zip` | 解压后双击 `openmusic.exe`,免安装。整个文件夹要保持完整 |
-| Android | `openmusic-v0.5.0-android-universal.apk` | **不确定选哪个就下这个**,通吃所有机型 |
-| Android | `openmusic-v0.5.0-android-arm64-v8a.apk` | 2017 年后的手机基本都是,体积小一半 |
-| Android | `openmusic-v0.5.0-android-armeabi-v7a.apk` | 较老的 32 位设备 |
+| Windows | `openmusic-v0.5.0-windows-x64.zip` | Unzip and run `openmusic.exe`. No installer. Keep the folder intact |
+| Android | `openmusic-v0.5.0-android-universal.apk` | **Pick this if unsure** — works on every device |
+| Android | `openmusic-v0.5.0-android-arm64-v8a.apk` | Any phone from 2017 onward. Half the size |
+| Android | `openmusic-v0.5.0-android-armeabi-v7a.apk` | Older 32-bit devices |
 
-Android 侧装需要在系统里允许「安装未知来源应用」。APK 用固定密钥签名,后续版本可直接覆盖升级。
+On Android you'll need to allow installing apps from unknown sources. APKs are signed with a stable key, so later versions install as upgrades.
 
-## 功能
+## Features
 
-**建库**
-- 选文件夹扫描导入,增量扫描(mtime + size 判定,重扫只处理变动过的文件)
-- 支持 MP3 / FLAC / AAC / OGG / OPUS / WAV
-- 首次启动有建库向导:选文件夹 → 扫描 → 批量补全封面歌词 → 完成
-- 损坏或不支持的文件跳过并记入「问题文件」清单,不中断整次扫描
+**Library**
+- Pick a folder and scan; incremental rescans only touch files that actually changed (mtime + size)
+- MP3 / FLAC / AAC / OGG / OPUS / WAV
+- First launch walks you through it: pick folder → scan → fill in missing covers and lyrics → done
+- Corrupt or unsupported files are skipped into a "problem files" list instead of aborting the scan
 
-**播放**
-- 队列播放、gapless 无缝衔接(media_kit / mpv)
-- 随机播放,三态循环(关 / 列表 / 单曲)
-- Android:通知栏、锁屏、蓝牙耳机按键(audio_service)
-- Windows:系统媒体悬浮窗与媒体键(SMTC)
+**Playback**
+- Queue playback with gapless transitions (media_kit / mpv)
+- Shuffle, and three repeat modes (off / all / one)
+- Android: notification, lock screen, and Bluetooth headset buttons (audio_service)
+- Windows: system media overlay and media keys (SMTC)
 
-**歌单与收藏**
-- 歌单增删改、❤️ 我喜欢的
-- 标准 M3U8 导入导出(相对路径,可移植到别的播放器)
-- 曲目按**内容指纹**引用:改名、挪目录都不丢关联;文件暂时缺失的曲目在歌单里置灰保留,不会被静默删掉
+**Playlists and favorites**
+- Create and edit playlists, plus a favorites list
+- Import and export standard M3U8 with relative paths, so playlists move to other players
+- Tracks are referenced by **content fingerprint**: renaming or moving files keeps the link intact. A track whose file is temporarily missing stays in the playlist, greyed out, rather than silently disappearing
 
-**刮削(元数据补全)**
-- 单曲手动刮削 + 全库批量补全,三个开放数据源:iTunes Search、LRCLIB、MusicBrainz + Cover Art Archive
-- **绝不修改音频文件字节**:封面写 `<音频名>.jpg`、歌词写 `<音频名>.lrc` 伴随文件,标题/歌手修正写数据库覆盖层——改文件头会让内容指纹变化,歌单和收藏的关联就断了
-- 批量补全只补缺的,不覆盖已有的封面/歌词;匹配不够可信时宁可跳过,不乱糊封面
+**Metadata scraping**
+- Per-track scraping plus whole-library batch fill, from open data sources: iTunes Search, LRCLIB, and MusicBrainz + Cover Art Archive
+- **Audio file bytes are never modified.** Covers are written as `<track>.jpg`, lyrics as `<track>.lrc`, and title/artist corrections go into a database overlay — because touching the file header changes the content fingerprint, which would break every playlist and favorite that references the track
+- Batch fill only adds what's missing and never overwrites covers or lyrics you already have. When a match isn't confident enough it skips rather than attaching the wrong artwork
 
-**歌词**
-- 行级 LRC 滚动显示,当前行居中高亮,随播放推进
-- 正在播放页点封面翻到歌词;鼠标滚轮或手指滑动可自由浏览,4 秒后自动回到当前句
-- 焦点框跟随视口中心,点 ▶ 从任意一句开始播放
-- 无时间轴的纯文本歌词也能显示;没有歌词时正常提示
+**Lyrics**
+- Line-level LRC scrolling, current line centered and highlighted, following playback
+- Tap the cover on the now-playing screen to flip to lyrics. Scroll wheel or swipe to browse freely; the focus box follows the center of the viewport, tap ▶ to start from any line, and it returns to the current line after four idle seconds
+- Plain-text lyrics without timestamps display too
 
-## 构建运行
+## Build and run
 
-需要 Flutter 3.44+(Dart 3.12+)。
+Requires Flutter 3.44+ (Dart 3.12+).
 
 ```bash
 flutter pub get
-flutter run -d windows        # 桌面
-flutter run -d <android设备>  # 手机
+flutter run -d windows        # desktop
+flutter run -d <android-device>
 ```
 
-跑测试:
+Tests:
 
 ```bash
 flutter test
 ```
 
-Windows 上跑测试依赖仓库内置的 `tool/sqlite3/sqlite3.dll`,无需另外安装。
+On Windows the tests use the bundled `tool/sqlite3/sqlite3.dll` — nothing extra to install.
 
-## 技术栈
+To build signed release artifacts, create `android/key.properties` pointing at your own keystore (`storePassword`, `keyPassword`, `keyAlias`, `storeFile`). Without that file, release builds fall back to debug signing so the project still builds out of the box.
 
-Flutter · riverpod(状态)· drift/SQLite(索引)· media_kit(播放,mpv 内核)· audio_service(Android 媒体会话)· smtc_windows(Windows 媒体面板)
+## Stack
 
-**设计原则:文件即真相。** SQLite 只是索引缓存,删库重扫不丢数据;歌单与收藏是原生数据,带 UUID 与 updated_at,为跨设备同步预留。曲目的跨设备身份是内容指纹 `xxh3(文件大小 + 头 128KB + 尾 128KB)`。
+Flutter · riverpod (state) · drift/SQLite (index) · media_kit (playback, mpv backend) · audio_service (Android media session) · smtc_windows (Windows media panel)
 
-## 路线图
+**Design principle: files are the source of truth.** SQLite is only an index cache — delete it, rescan, and nothing is lost. Playlists and favorites are first-class data carrying UUIDs and `updated_at` timestamps, reserved for cross-device sync. A track's cross-device identity is its content fingerprint: `xxh3(file size + first 128 KB + last 128 KB)`.
 
-见 [ROADMAP.md](ROADMAP.md)。下一步是局域网同步:mDNS 发现 + 配对码 + 选择性文件同步。
+## Roadmap
 
-## 许可
+See [ROADMAP.md](ROADMAP.md). Next up is LAN sync: mDNS discovery, pairing codes, and selective file mirroring.
+
+## License
 
 [MIT](LICENSE)
