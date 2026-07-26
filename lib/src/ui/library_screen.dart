@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../data/database.dart';
 import 'scrape_screen.dart';
@@ -10,6 +11,7 @@ class LibraryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final tracksAsync = ref.watch(trackListProvider);
 
     return Material(
@@ -18,10 +20,10 @@ class LibraryScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(8),
             child: TextField(
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: '搜索标题 / 歌手 / 专辑',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: l10n.searchHint,
+                border: const OutlineInputBorder(),
                 isDense: true,
               ),
               onChanged: (v) =>
@@ -34,9 +36,9 @@ class LibraryScreen extends ConsumerWidget {
               // AsyncLoading；跳过它以保留旧列表，避免列表区闪 spinner。
               skipLoadingOnReload: true,
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('加载失败: $e')),
+              error: (e, _) => Center(child: Text(l10n.loadFailed('$e'))),
               data: (tracks) => tracks.isEmpty
-                  ? const Center(child: Text('曲库为空——到设置里添加文件夹并扫描'))
+                  ? Center(child: Text(l10n.libraryEmpty))
                   : ListView.builder(
                       itemCount: tracks.length,
                       itemBuilder: (context, i) {
@@ -93,7 +95,7 @@ class _TrackMenu extends ConsumerWidget {
                 onTap: () => Navigator.pop(ctx, pl.uuid),
               ),
             if (playlists.isEmpty)
-              const ListTile(title: Text('还没有歌单,去「歌单」页新建')),
+              ListTile(title: Text(AppLocalizations.of(ctx)!.noPlaylistsYet)),
           ],
         ),
       ),
@@ -105,6 +107,7 @@ class _TrackMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final isFav =
         ref.watch(isFavoriteProvider(track.fingerprint)).value == true;
     final playlists = ref.watch(playlistsProvider).value ?? const <Playlist>[];
@@ -116,7 +119,7 @@ class _TrackMenu extends ConsumerWidget {
             isFav ? Icons.favorite : Icons.favorite_border,
             color: isFav ? Colors.pink : null,
           ),
-          tooltip: isFav ? '取消收藏' : '收藏',
+          tooltip: isFav ? l10n.unfavorite : l10n.favorite,
           onPressed: () =>
               ref.read(databaseProvider).toggleFavorite(track.fingerprint),
         ),
@@ -130,9 +133,9 @@ class _TrackMenu extends ConsumerWidget {
               );
             }
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'add', child: Text('加入歌单')),
-            PopupMenuItem(value: 'scrape', child: Text('刮削')),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 'add', child: Text(l10n.addToPlaylist)),
+            PopupMenuItem(value: 'scrape', child: Text(l10n.scrape)),
           ],
         ),
       ],

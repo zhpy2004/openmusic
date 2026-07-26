@@ -8,6 +8,7 @@ import 'package:openmusic/src/ui/playlists_screen.dart';
 
 import 'helpers/db.dart';
 import 'helpers/fakes.dart';
+import 'helpers/pump.dart';
 
 void main() {
   late AppDatabase db;
@@ -20,7 +21,7 @@ void main() {
 
   Widget app() => ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db)],
-    child: const MaterialApp(home: PlaylistsScreen()),
+    child: localizedApp(PlaylistsScreen()),
   );
 
   testWidgets('置顶「我喜欢的」+ 列出歌单', (tester) async {
@@ -62,9 +63,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           audioEngineProvider.overrideWithValue(engine), // 详情页底部迷你播放栏需要
         ],
-        child: MaterialApp(
-          home: PlaylistDetailScreen(uuid: u, name: 'L'),
-        ),
+        child: localizedApp(PlaylistDetailScreen(uuid: u, name: 'L')),
       ),
     );
     await tester.pumpAndSettle();
@@ -87,9 +86,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           audioEngineProvider.overrideWithValue(engine), // 详情页底部迷你播放栏需要
         ],
-        child: MaterialApp(
-          home: PlaylistDetailScreen(uuid: u, name: '待删'),
-        ),
+        child: localizedApp(PlaylistDetailScreen(uuid: u, name: '待删')),
       ),
     );
     await tester.pumpAndSettle();

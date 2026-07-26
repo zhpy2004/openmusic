@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import 'now_playing_bar.dart';
 
@@ -9,10 +10,11 @@ class FavoritesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final favFps = ref.watch(favoritesProvider);
     final tracksAsync = ref.watch(trackListProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('我喜欢的')),
+      appBar: AppBar(title: Text(l10n.favoritesTitle)),
       // 主壳的迷你播放栏只在 tab 页显示;push 进来的子页要自带一份,否则播放栏消失。
       bottomNavigationBar: const NowPlayingBar(),
       body: (favFps.value == null || tracksAsync.value == null)
@@ -28,7 +30,7 @@ class FavoritesScreen extends ConsumerWidget {
                     if (byFp[fp] != null) byFp[fp]!,
                 ];
                 if (favTracks.isEmpty) {
-                  return const Center(child: Text('还没有收藏——点曲目上的 ❤️'));
+                  return Center(child: Text(l10n.favoritesEmpty));
                 }
                 return ListView.builder(
                   itemCount: favTracks.length,

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/m3u8.dart';
 import 'favorites_screen.dart';
@@ -15,24 +16,25 @@ class PlaylistsScreen extends ConsumerWidget {
   const PlaylistsScreen({super.key});
 
   Future<void> _create(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final ctrl = TextEditingController();
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('新建歌单'),
+        title: Text(l10n.newPlaylist),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(hintText: '歌单名'),
+          decoration: InputDecoration(hintText: l10n.playlistNameHint),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('创建'),
+            child: Text(l10n.create),
           ),
         ],
       ),
@@ -43,6 +45,7 @@ class PlaylistsScreen extends ConsumerWidget {
   }
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final res = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['m3u8', 'm3u'],
@@ -73,40 +76,48 @@ class PlaylistsScreen extends ConsumerWidget {
       if (match.matchedFps.isEmpty) {
         // 零匹配不建空歌单(路径全对不上/曲库为空);只提示。
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('未匹配到曲库中的曲目(${match.unmatched} 首未匹配)')),
+          SnackBar(content: Text(l10n.importNoMatch(match.unmatched))),
         );
         return;
       }
       final base = f.name.replaceAll(RegExp(r'\.m3u8?$'), '');
-      final u = await db.createPlaylist(base.isEmpty ? '导入歌单' : base);
+      final u = await db.createPlaylist(
+        base.isEmpty ? l10n.importedPlaylistName : base,
+      );
       for (final fp in match.matchedFps) {
         await db.addToPlaylist(u, fp);
       }
       if (context.mounted) {
-        final suffix = match.unmatched > 0 ? '(${match.unmatched} 首未匹配)' : '';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已导入 ${match.matchedFps.length} 首$suffix')),
-        );
+        final msg = match.unmatched > 0
+            ? l10n.importedTracksWithUnmatched(
+                match.matchedFps.length,
+                match.unmatched,
+              )
+            : l10n.importedTracks(match.matchedFps.length);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('导入失败: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.importFailed('$e'))));
       }
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final playlists = ref.watch(playlistsProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('歌单'),
+        title: Text(l10n.tabPlaylists),
         actions: [
           IconButton(
             icon: const Icon(Icons.file_download),
-            tooltip: '导入 M3U8',
+            tooltip: l10n.importM3u8,
             onPressed: () => _import(context, ref),
           ),
         ],
@@ -119,7 +130,7 @@ class PlaylistsScreen extends ConsumerWidget {
         children: [
           ListTile(
             leading: const Icon(Icons.favorite, color: Colors.pink),
-            title: const Text('我喜欢的'),
+            title: Text(l10n.favoritesTitle),
             onTap: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const FavoritesScreen())),

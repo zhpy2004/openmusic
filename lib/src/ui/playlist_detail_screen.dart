@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/m3u8.dart';
 import 'now_playing_bar.dart';
@@ -20,13 +21,14 @@ class PlaylistDetailScreen extends ConsumerWidget {
   final String name;
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final db = ref.read(databaseProvider);
     final items = await db.watchPlaylistItems(uuid).first;
     final present = items.where((e) => e.track != null).toList();
     final missing = items.length - present.length;
     if (!context.mounted) return;
     final savePath = await FilePicker.platform.saveFile(
-      dialogTitle: '导出歌单',
+      dialogTitle: l10n.exportPlaylist,
       fileName: '$name.m3u8',
     );
     if (savePath == null) return;
@@ -48,32 +50,37 @@ class PlaylistDetailScreen extends ConsumerWidget {
       await File(savePath).writeAsString(text);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(missing > 0 ? '已导出($missing 首缺失未含)' : '已导出')),
+          SnackBar(
+            content: Text(
+              missing > 0 ? l10n.exportedWithMissing(missing) : l10n.exported,
+            ),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.exportFailed('$e'))));
       }
     }
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('删除歌单「$name」?'),
-        content: const Text('歌单定义会被删除(曲目文件不受影响)。'),
+        title: Text(l10n.deletePlaylistTitle(name)),
+        content: Text(l10n.deletePlaylistBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -86,6 +93,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final itemsAsync = ref.watch(playlistItemsProvider(uuid));
     return Scaffold(
       appBar: AppBar(
@@ -93,12 +101,12 @@ class PlaylistDetailScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.ios_share),
-            tooltip: '导出 M3U8',
+            tooltip: l10n.exportM3u8,
             onPressed: () => _export(context, ref),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            tooltip: '删除歌单',
+            tooltip: l10n.deletePlaylist,
             onPressed: () => _confirmDelete(context, ref),
           ),
         ],
@@ -107,9 +115,9 @@ class PlaylistDetailScreen extends ConsumerWidget {
       bottomNavigationBar: const NowPlayingBar(),
       body: itemsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('加载失败: $e')),
+        error: (e, _) => Center(child: Text(l10n.loadFailed('$e'))),
         data: (items) => items.isEmpty
-            ? const Center(child: Text('空歌单——从曲库长按曲目加入'))
+            ? Center(child: Text(l10n.playlistEmpty))
             : ListView.builder(
                 itemCount: items.length,
                 itemBuilder: (context, i) {
@@ -122,7 +130,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
                       color: t == null ? disabled : null,
                     ),
                     title: Text(
-                      t?.title ?? '文件缺失',
+                      t?.title ?? l10n.fileMissing,
                       style: t == null ? TextStyle(color: disabled) : null,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -145,12 +153,15 @@ class PlaylistDetailScreen extends ConsumerWidget {
                         }
                       },
                       itemBuilder: (_) => [
-                        const PopupMenuItem(value: 'remove', child: Text('移除')),
+                        PopupMenuItem(
+                          value: 'remove',
+                          child: Text(l10n.remove),
+                        ),
                         // 缺失曲目没有 tracks 行,无从刮削
                         if (t != null)
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'scrape',
-                            child: Text('刮削'),
+                            child: Text(l10n.scrape),
                           ),
                       ],
                     ),

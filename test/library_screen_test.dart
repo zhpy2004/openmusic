@@ -8,6 +8,7 @@ import 'package:openmusic/src/ui/library_screen.dart';
 
 import 'helpers/db.dart';
 import 'helpers/fakes.dart';
+import 'helpers/pump.dart';
 
 void main() {
   late AppDatabase db;
@@ -44,7 +45,7 @@ void main() {
       databaseProvider.overrideWithValue(db),
       audioEngineProvider.overrideWithValue(engine),
     ],
-    child: const MaterialApp(home: LibraryScreen()),
+    child: localizedApp(LibraryScreen()),
   );
 
   testWidgets('列表展示曲目标题与歌手', (tester) async {
