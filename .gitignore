@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .superpowers/
+
+# 开发过程文档(设计 spec / 实施计划 / 欠账清单)留在本地,不进公开仓库
+docs/
