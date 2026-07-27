@@ -8,6 +8,7 @@ import '../app/providers.dart';
 import '../library/library_setup.dart';
 import 'batch_scrape_runner.dart';
 import 'scan_problem_text.dart';
+import 'sync_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -153,6 +154,17 @@ class SettingsScreen extends ConsumerWidget {
           title: Text(l10n.batchFill),
           subtitle: Text(l10n.batchFillSubtitle),
           onTap: () => _batchScrape(context, ref),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.sync),
+          title: Text(l10n.syncTitle),
+          subtitle: Text(l10n.syncSubtitle),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const SyncPermissionGate(child: SyncScreen()),
+            ),
+          ),
         ),
       ],
     );

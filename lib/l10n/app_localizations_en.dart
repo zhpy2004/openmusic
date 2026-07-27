@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get save => 'Save';
+
+  @override
   String get delete => 'Delete';
 
   @override
@@ -344,6 +347,161 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wizardEnterLibrary => 'Open library';
+
+  @override
+  String get syncTitle => 'Device sync';
+
+  @override
+  String get syncSubtitle => 'Pair with devices on your local network';
+
+  @override
+  String syncListening(int port) {
+    return 'Listening on :$port';
+  }
+
+  @override
+  String get syncNotStarted => 'Not running';
+
+  @override
+  String syncStartFailed(String error) {
+    return 'Sync service not running: $error';
+  }
+
+  @override
+  String get syncRetry => 'Retry';
+
+  @override
+  String get syncRenameDevice => 'Rename device';
+
+  @override
+  String get syncPairedSection => 'Paired devices';
+
+  @override
+  String get syncNoPaired => 'No paired devices yet';
+
+  @override
+  String get syncDiscoveredSection => 'Found on your network';
+
+  @override
+  String get syncNothingFound => 'No other devices found';
+
+  @override
+  String get syncNothingFoundHint =>
+      'Make sure both devices are on the same Wi-Fi and have openmusic open';
+
+  @override
+  String syncOnlineAt(String address) {
+    return 'Online · $address';
+  }
+
+  @override
+  String get syncOffline => 'Offline';
+
+  @override
+  String get syncIncompatible =>
+      'Different protocol version — please update openmusic';
+
+  @override
+  String get syncPair => 'Pair';
+
+  @override
+  String get syncUnpair => 'Unpair';
+
+  @override
+  String get syncTestConnection => 'Test connection';
+
+  @override
+  String syncPairingWith(String device) {
+    return 'Pairing with $device';
+  }
+
+  @override
+  String get syncNegotiating => 'Negotiating keys…';
+
+  @override
+  String get syncCompareCodes =>
+      'Check that the other device shows the same number:';
+
+  @override
+  String get syncWaitingPeer => 'Waiting for the other device (up to 60 s)…';
+
+  @override
+  String get syncPairRequestTitle => 'Pairing request';
+
+  @override
+  String syncPairRequestFrom(String device) {
+    return '$device wants to pair with this device';
+  }
+
+  @override
+  String get syncCodesMatch => 'Numbers match';
+
+  @override
+  String get syncRejectPair => 'Decline';
+
+  @override
+  String syncPairedWith(String device) {
+    return 'Paired with $device';
+  }
+
+  @override
+  String get syncPairRejected => 'The other device declined';
+
+  @override
+  String get syncPairTimedOut =>
+      'The other device did not confirm; pairing cancelled';
+
+  @override
+  String get syncPairFailed =>
+      'Pairing failed: could not reach the other device';
+
+  @override
+  String syncHelloResult(String device, String platform, int count, int pv) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tracks',
+      one: '1 track',
+    );
+    return '$device ($platform) · $_temp0 · protocol v$pv';
+  }
+
+  @override
+  String get syncAuthUnknownDevice =>
+      'The other device has unpaired from this one; pair again';
+
+  @override
+  String get syncAuthClockSkew =>
+      'The two devices\' clocks differ by more than 5 minutes; please correct the system time';
+
+  @override
+  String syncAuthOther(String reason) {
+    return 'Authentication failed: $reason';
+  }
+
+  @override
+  String syncConnectFailed(String error) {
+    return 'Connection failed: $error';
+  }
+
+  @override
+  String syncUnpairTitle(String device) {
+    return 'Unpair from $device?';
+  }
+
+  @override
+  String get syncUnpairBody =>
+      'This only removes the record on this device — the other device still keeps its pairing. Do it on both devices to fully disconnect.\n\nNo music files are deleted.';
+
+  @override
+  String get syncPermissionNeeded =>
+      'Without the “nearby devices” permission, devices on your network can\'t be found.';
+
+  @override
+  String get syncGrantPermission => 'Grant permission';
+
+  @override
+  String get syncOpenSettings => 'Open system settings';
 
   @override
   String problemRootUnreachable(String path) {
