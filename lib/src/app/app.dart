@@ -22,6 +22,30 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
   bool _wizardDismissed = false;
   bool _decided = false; // 是否已根据首个 roots 值做出"是否进向导"的一次性决定
   bool _onboarding = false; // 锁存:进入向导后不因期间新增文件夹(roots 变非空)被踢出
+  AppLifecycleListener? _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // 同步服务跟随 App 前台起停(M3-A 裁决 2)。首帧后再起,不拖慢启动;
+    // 起不来只会在同步页显示错误,不影响播放与曲库。
+    // syncAutoStart 默认 false(见 providers.dart),只有 main.dart 打开——
+    // 否则 widget 测试会被 HttpServer 的周期定时器判为"timer 未完成"。
+    if (!ref.read(syncAutoStartProvider)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(syncControllerProvider).start();
+    });
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(syncControllerProvider).start(),
+      onPause: () => ref.read(syncControllerProvider).stop(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle?.dispose();
+    super.dispose();
+  }
 
   static const _screens = [
     LibraryScreen(),

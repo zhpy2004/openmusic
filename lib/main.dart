@@ -64,6 +64,8 @@ Future<void> main() async {
         databaseProvider.overrideWithValue(database),
         audioEngineProvider.overrideWithValue(engine),
         playbackControllerProvider.overrideWith((ref) => controller),
+        // 真实启动路径才开同步服务(默认关,见 providers.dart 的说明)。
+        syncAutoStartProvider.overrideWithValue(true),
       ],
       child: const OpenMusicApp(),
     ),

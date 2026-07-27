@@ -17,6 +17,9 @@ import '../scraper/itunes_source.dart';
 import '../scraper/lrclib_source.dart';
 import '../scraper/musicbrainz_source.dart';
 import '../scraper/scraper_service.dart';
+import '../sync/bonsoir_discovery.dart';
+import '../sync/device_identity.dart';
+import '../sync/sync_controller.dart';
 
 /// database 与 engine 在 main() 里用 overrideWithValue 注入（测试同理）。
 final databaseProvider = Provider<AppDatabase>(
@@ -133,6 +136,28 @@ final scraperServiceProvider = Provider<ScraperService>((ref) {
 /// 1req/s 限流,批量顺序调用自动受限)。
 final batchScraperServiceProvider = Provider<BatchScraperService>(
   (ref) => BatchScraperService(ref.watch(scraperServiceProvider)),
+);
+
+/// 是否让 App 在前台自动启动同步服务。
+///
+/// **默认 false,只有 main.dart 打开它。** 原因:`HttpServer.bind` 会注册一个
+/// 周期性的 idleTimeout 定时器,在 `testWidgets` 的假时钟下就成了"永远未完成的
+/// timer",任何 pump 了 OpenMusicApp 的 widget 测试都会因此断言失败。默认关掉
+/// 意味着测试永远不会意外开套接字;真实启动路径由 main.dart 显式打开。
+final syncAutoStartProvider = Provider<bool>((ref) => false);
+
+/// 同步控制器。生命周期跟随 App 前台(见 app.dart 的 AppLifecycleListener)。
+final syncControllerProvider = ChangeNotifierProvider<SyncController>(
+  (ref) => SyncController(
+    db: ref.watch(databaseProvider),
+    discovery: BonsoirNetworkDiscovery(),
+    platform: localPlatform(),
+  ),
+);
+
+/// 已配对设备列表。
+final pairedPeersProvider = StreamProvider<List<Peer>>(
+  (ref) => ref.watch(databaseProvider).watchPeers(),
 );
 
 /// 语言偏好的存储键。取值:'system'(默认)/ 'zh' / 'en'。
