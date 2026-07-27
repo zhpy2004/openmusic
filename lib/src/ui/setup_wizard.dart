@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../library/library_setup.dart';
+import '../library/scanner.dart';
 import '../scraper/batch_scraper_service.dart';
 import 'batch_scrape_runner.dart';
 
@@ -21,7 +22,7 @@ class SetupWizard extends StatefulWidget {
     required this.batchStreamBuilder,
     required this.onDismiss,
     required this.onFinish,
-    this.scanStatus,
+    this.scanProgress,
   });
 
   final List<String> roots;
@@ -37,8 +38,12 @@ class SetupWizard extends StatefulWidget {
   final VoidCallback onDismiss;
   final VoidCallback onFinish;
 
-  /// 扫描步的实时状态文案(可选;由调用方从 scanProgressProvider 传入)。
-  final String? scanStatus;
+  /// 扫描进度(可选;调用方从 scanProgressProvider 原样传入)。
+  ///
+  /// **传的是类型化对象而非拼好的文案**:调用方 `_buildWizard` 的 context 在
+  /// MaterialApp 之上,拿不到 Localizations,在那里拼文案会抛空断言。文案由
+  /// 本组件渲染 —— 这里的 context 在 MaterialApp 之下。
+  final ScanProgress? scanProgress;
 
   @override
   State<SetupWizard> createState() => _SetupWizardState();
@@ -169,7 +174,14 @@ class _SetupWizardState extends State<SetupWizard> {
         if (_scanning) ...[
           const CircularProgressIndicator(),
           const SizedBox(height: 8),
-          Text(widget.scanStatus ?? l10n.wizardScanning),
+          Text(
+            widget.scanProgress == null
+                ? l10n.wizardScanning
+                : l10n.scanning(
+                    widget.scanProgress!.scanned,
+                    widget.scanProgress!.total,
+                  ),
+          ),
         ] else
           FilledButton(
             onPressed: () async {

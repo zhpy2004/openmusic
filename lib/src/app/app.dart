@@ -76,15 +76,14 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
 
   Widget _buildWizard() {
     final roots = ref.watch(scanRootsProvider).value ?? const <String>[];
-    final progress = ref.watch(scanProgressProvider);
-    final scanStatus = progress == null
-        ? null
-        : AppLocalizations.of(
-            context,
-          )!.scanning(progress.scanned, progress.total);
+    // 进度**原样传下去,不在这里拼文案**:本方法的 context 是 _OpenMusicAppState
+    // 自己的,位于下面那个 MaterialApp 之上,没有 Localizations 祖先——
+    // 在这里调 AppLocalizations.of(context)! 会抛 Null check operator,
+    // 而它只在扫描进行中(progress != null)才触发:点"开始扫描"就白屏一闪、
+    // 向导被重建退回第一步。v0.6.0 国际化引入的回归,2026-07-27 真机抓到。
     return SetupWizard(
       roots: roots,
-      scanStatus: scanStatus,
+      scanProgress: ref.watch(scanProgressProvider),
       onAddFolder: () => addScanFolder(ref.read(databaseProvider)),
       onScan: _runScan,
       batchStreamBuilder: (cancel) {
