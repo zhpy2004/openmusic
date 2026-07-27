@@ -107,11 +107,43 @@ void main() {
     expect(dismissed, true);
   });
 
-  testWidgets('选文件夹步:有根可进扫描步(下一步可用)', (tester) async {
+  // 真实流程:空着进向导 → 加文件夹 → roots 变非空 → 下一步可用。
+  // (不能"挂载时就带着根"来测:那种情况向导会直接跳到扫描步,见下一条。)
+  testWidgets('选文件夹步:加了根之后下一步可用', (tester) async {
+    Widget wizard(List<String> roots) => localizedApp(
+      SetupWizard(
+        roots: roots,
+        onAddFolder: () async => AddFolderResult.added,
+        onScan: () async => 0,
+        batchStreamBuilder: (_) => const Stream.empty(),
+        onDismiss: () {},
+        onFinish: () {},
+      ),
+    );
+
+    await tester.pumpWidget(wizard(const []));
+    await tester.tap(find.text('开始'));
+    await tester.pump();
+    expect(find.text('下一步'), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(find.widgetWithText(FilledButton, '下一步')).onPressed,
+      isNull, // 没有根:下一步禁用
+    );
+
+    await tester.pumpWidget(wizard(const ['/music'])); // 加好了根
+    await tester.pump();
+    expect(find.text('/music'), findsOneWidget); // 列出已加的根
+    expect(
+      tester.widget<FilledButton>(find.widgetWithText(FilledButton, '下一步')).onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('已有扫描根时挂载:直接从扫描步开始,不再问选文件夹', (tester) async {
     await tester.pumpWidget(
       localizedApp(
         SetupWizard(
-          roots: const ['/music'], // 已有一个根
+          roots: const ['/music'],
           onAddFolder: () async => AddFolderResult.added,
           onScan: () async => 0,
           batchStreamBuilder: (_) => const Stream.empty(),
@@ -120,10 +152,9 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('开始'));
-    await tester.pump();
-    expect(find.text('/music'), findsOneWidget); // 列出已加的根
-    expect(find.text('下一步'), findsOneWidget);
+    expect(find.text('扫描曲库'), findsOneWidget);
+    expect(find.text('开始扫描'), findsOneWidget);
+    expect(find.text('欢迎使用 OpenMusic'), findsNothing);
   });
 
   testWidgets('扫描根为空 => 显示向导欢迎页', (tester) async {

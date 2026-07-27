@@ -50,6 +50,17 @@ class _SetupWizardState extends State<SetupWizard> {
   bool _cancelBatch = false;
 
   @override
+  void initState() {
+    super.initState();
+    // 已经有扫描根 = 用户显然过了"选文件夹"这步,直接从扫描步开始。
+    //
+    // 这既是合理行为(向导不该问你要一个你已经加好的文件夹),也是对
+    // 烟测发现的那个问题的兜底:Android 上曾出现向导 State 被重建、
+    // 用户被踢回欢迎页从头再来一遍(根因未查实,见 deferred-bugs)。
+    if (widget.roots.isNotEmpty) _step = 2;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
