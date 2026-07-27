@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -82,51 +83,9 @@ class SyncScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final controller = ref.watch(syncControllerProvider);
     final peersAsync = ref.watch(pairedPeersProvider);
-    final incoming = controller.incomingPair;
 
-    // 对方发起的配对请求:盖在页面上,必须先处理。
-    if (incoming != null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.syncPairRequestTitle)),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.syncPairRequestFrom(incoming.deviceName),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(l10n.syncCompareCodes),
-                const SizedBox(height: 16),
-                Text(
-                  incoming.code,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.displayMedium?.copyWith(letterSpacing: 8),
-                ),
-                const SizedBox(height: 24),
-                Wrap(
-                  spacing: 12,
-                  children: [
-                    TextButton(
-                      onPressed: controller.rejectIncomingPair,
-                      child: Text(l10n.syncRejectPair),
-                    ),
-                    FilledButton(
-                      onPressed: controller.acceptIncomingPair,
-                      child: Text(l10n.syncCodesMatch),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    // 收到的配对请求不在这里渲染 —— 它由 app.dart 的全局弹窗接管,
+    // 因为请求可能在用户正在听歌、翻歌单时到达。
 
     final paired = peersAsync.value ?? const <Peer>[];
     return Scaffold(
@@ -308,52 +267,60 @@ class SyncScreen extends ConsumerWidget {
     final client = controller.client;
     if (client == null) return;
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final codeNotifier = ValueNotifier<String?>(null);
     final future = client.pair(
       address: peer.address,
       onCode: (code) => codeNotifier.value = code,
     );
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.syncPairingWith(peer.deviceName)),
-        content: ValueListenableBuilder<String?>(
-          valueListenable: codeNotifier,
-          builder: (ctx, code, _) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (code == null) ...[
-                const CircularProgressIndicator(),
-                const SizedBox(height: 12),
-                Text(l10n.syncNegotiating),
-              ] else ...[
-                Text(l10n.syncCompareCodes),
-                const SizedBox(height: 16),
-                Text(
-                  code,
-                  style: Theme.of(
-                    ctx,
-                  ).textTheme.displayMedium?.copyWith(letterSpacing: 8),
-                ),
-                const SizedBox(height: 12),
-                Text(l10n.syncWaitingPeer),
+    // 故意不 await 这个弹窗:await 的话要等用户手动关掉才会往下走,
+    // 配对早就成功了却还停在"等待对方确认"(烟测发现)。改成配对一有结果
+    // 就由下面把它收起来,用户手动关也行(dialogOpen 兜住重复 pop)。
+    var dialogOpen = true;
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.syncPairingWith(peer.deviceName)),
+          content: ValueListenableBuilder<String?>(
+            valueListenable: codeNotifier,
+            builder: (ctx, code, _) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (code == null) ...[
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(l10n.syncNegotiating),
+                ] else ...[
+                  Text(l10n.syncCompareCodes),
+                  const SizedBox(height: 16),
+                  Text(
+                    code,
+                    style: Theme.of(
+                      ctx,
+                    ).textTheme.displaySmall?.copyWith(letterSpacing: 8),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(l10n.syncWaitingPeer),
+                ],
               ],
-            ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.close),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.close),
-          ),
-        ],
-      ),
+      ).then((_) => dialogOpen = false),
     );
 
     final outcome = await future;
     codeNotifier.dispose();
+    if (dialogOpen && navigator.mounted) navigator.pop();
     messenger.showSnackBar(
       SnackBar(
         content: Text(switch (outcome) {

@@ -7,6 +7,7 @@ import 'package:openmusic/src/sync/device_identity.dart';
 import 'package:openmusic/src/sync/discovery.dart';
 import 'package:openmusic/src/sync/sync_controller.dart';
 import 'package:openmusic/src/sync/sync_server.dart';
+import 'package:openmusic/src/ui/pair_request_prompt.dart';
 import 'package:openmusic/src/ui/sync_screen.dart';
 
 import 'helpers/db.dart';
@@ -137,21 +138,34 @@ void main() {
     expect(find.text('离线'), findsOneWidget);
   });
 
-  testWidgets('对方发起配对时弹出 6 位码确认框', (tester) async {
-    await pumpScreen(tester);
-    controller.incomingPair = const PairRequest(
-      deviceId: 'x',
-      deviceName: '书房电脑',
-      platform: 'windows',
-      code: '048213',
+  testWidgets('配对请求提示:显示 6 位码与两个动作', (tester) async {
+    var accepted = false;
+    var rejected = false;
+    await tester.pumpWidget(
+      localizedApp(
+        Scaffold(
+          body: PairRequestPrompt(
+            request: const PairRequest(
+              deviceId: 'x',
+              deviceName: '书房电脑',
+              platform: 'windows',
+              code: '048213',
+            ),
+            onAccept: () => accepted = true,
+            onReject: () => rejected = true,
+          ),
+        ),
+      ),
     );
-    controller.notifyListeners();
     await tester.pump();
 
     expect(find.text('048213'), findsOneWidget);
     expect(find.textContaining('书房电脑'), findsWidgets);
-    expect(find.text('两边数字一致'), findsOneWidget);
-    expect(find.text('拒绝'), findsOneWidget);
+
+    await tester.tap(find.text('两边数字一致'));
+    expect(accepted, isTrue);
+    await tester.tap(find.text('拒绝'));
+    expect(rejected, isTrue);
   });
 
   testWidgets('服务启动失败时显示错误与重试', (tester) async {

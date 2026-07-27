@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/library_setup.dart';
+import '../sync/sync_controller.dart';
 import '../ui/library_screen.dart';
 import '../ui/now_playing_bar.dart';
+import '../ui/pair_request_prompt.dart';
 import '../ui/playlists_screen.dart';
 import '../ui/settings_screen.dart';
 import '../ui/setup_wizard.dart';
@@ -23,6 +25,11 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
   bool _decided = false; // 是否已根据首个 roots 值做出"是否进向导"的一次性决定
   bool _onboarding = false; // 锁存:进入向导后不因期间新增文件夹(roots 变非空)被踢出
   AppLifecycleListener? _lifecycle;
+
+  /// 全局弹配对请求要用它取 Navigator —— MaterialApp.builder 的 context 在
+  /// Navigator 之上,showDialog 找不到 Navigator,只能走 navigatorKey。
+  final _navKey = GlobalKey<NavigatorState>();
+  bool _pairDialogOpen = false;
 
   @override
   void initState() {
@@ -160,8 +167,36 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
     );
   }
 
+  /// 对方发起配对时全局弹窗:请求可能在用户听歌、翻歌单时到达,
+  /// 只在同步页里渲染的话根本看不见(烟测发现)。
+  void _syncPairListener(SyncController? _, SyncController controller) {
+    final request = controller.incomingPair;
+    final navigator = _navKey.currentState;
+    if (navigator == null) return;
+
+    if (request != null && !_pairDialogOpen) {
+      _pairDialogOpen = true;
+      showDialog<void>(
+        context: navigator.context,
+        barrierDismissible: false,
+        builder: (_) => PairRequestPrompt(
+          request: request,
+          onAccept: controller.acceptIncomingPair,
+          onReject: controller.rejectIncomingPair,
+        ),
+      ).then((_) => _pairDialogOpen = false);
+      return;
+    }
+    // 用户已确认/拒绝(incomingPair 被清空)→ 收起弹窗。
+    if (request == null && _pairDialogOpen) {
+      _pairDialogOpen = false;
+      navigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<SyncController>(syncControllerProvider, _syncPairListener);
     final rootsAsync = ref.watch(scanRootsProvider);
     final localePref = ref.watch(localePreferenceProvider).value;
     // 首次拿到 roots 值时一次性决定:空则进向导并锁存;此后 roots 变化(如向导内
@@ -174,6 +209,7 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
 
     return MaterialApp(
       title: 'OpenMusic',
+      navigatorKey: _navKey,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: localeFromPreference(localePref),
