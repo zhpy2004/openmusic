@@ -21,6 +21,9 @@ Line-level LRC scrolling, current-line highlight, tap-to-seek, free browsing wit
 ### v0.5.0 — Library setup wizard
 First-run wizard (pick folder → scan → batch fill → done) plus whole-library batch fill for covers and lyrics, with conservative matching that only fills what's missing.
 
+### v0.6.0 — Localization
+English and Simplified Chinese throughout the app, following the system language by default with a manual override in Settings. Scan problems became typed objects so the service layer no longer builds user-facing sentences.
+
 ## In progress
 
 ### LAN sync (next milestone)

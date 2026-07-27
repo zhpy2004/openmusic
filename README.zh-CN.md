@@ -6,7 +6,7 @@
 
 想做好两件事:**从零建库不费劲**、**两台设备一键同步**。曲库始终是你自己磁盘上的文件。
 
-> **v0.5.0** —— 播放与曲库体验(歌单/收藏、刮削、歌词、建库引导)已完成,可日常使用。局域网同步开发中,见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
+> **v0.6.0** —— 播放与曲库体验(歌单/收藏、刮削、歌词、建库引导)已完成,可日常使用,界面支持中英双语。局域网同步开发中,见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
 ## 下载
 
@@ -14,10 +14,10 @@
 
 | 平台 | 文件 | 说明 |
 |---|---|---|
-| Windows | `openmusic-v0.5.0-windows-x64.zip` | 解压后双击 `openmusic.exe`,免安装。整个文件夹要保持完整 |
-| Android | `openmusic-v0.5.0-android-universal.apk` | **不确定选哪个就下这个**,通吃所有机型 |
-| Android | `openmusic-v0.5.0-android-arm64-v8a.apk` | 2017 年后的手机基本都是,体积小一半 |
-| Android | `openmusic-v0.5.0-android-armeabi-v7a.apk` | 较老的 32 位设备 |
+| Windows | `openmusic-v0.6.0-windows-x64.zip` | 解压后双击 `openmusic.exe`,免安装。整个文件夹要保持完整 |
+| Android | `openmusic-v0.6.0-android-universal.apk` | **不确定选哪个就下这个**,通吃所有机型 |
+| Android | `openmusic-v0.6.0-android-arm64-v8a.apk` | 2017 年后的手机基本都是,体积小一半 |
+| Android | `openmusic-v0.6.0-android-armeabi-v7a.apk` | 较老的 32 位设备 |
 
 Android 侧装需要在系统里允许「安装未知来源应用」。APK 用固定密钥签名,后续版本可直接覆盖升级。
 
@@ -44,6 +44,10 @@ Android 侧装需要在系统里允许「安装未知来源应用」。APK 用�
 - 单曲手动刮削 + 全库批量补全,三个开放数据源:iTunes Search、LRCLIB、MusicBrainz + Cover Art Archive
 - **绝不修改音频文件字节**:封面写 `<音频名>.jpg`、歌词写 `<音频名>.lrc` 伴随文件,标题/歌手修正写数据库覆盖层——改文件头会让内容指纹变化,引用它的歌单和收藏就全断了
 - 批量补全只补缺的,不覆盖已有的封面/歌词;匹配不够可信时宁可跳过,不乱糊封面
+
+**语言**
+- 支持简体中文与英文,默认跟随系统语言
+- 设置里随时切换,选过就记住
 
 **歌词**
 - 行级 LRC 滚动显示,当前行居中高亮,随播放推进

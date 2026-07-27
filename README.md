@@ -6,7 +6,7 @@ A local-first, lightweight music player for Windows and Android, built with Flut
 
 It aims to do two things well: **make building your library painless**, and **keep two devices in sync with one tap**. Your library stays your own files on your own disk.
 
-> **v0.5.0** — playback and library experience (playlists/favorites, metadata scraping, lyrics, setup wizard) are complete and usable day to day. LAN sync is in development; see [ROADMAP.md](ROADMAP.md).
+> **v0.6.0** — playback and library experience (playlists/favorites, metadata scraping, lyrics, setup wizard) are complete and usable day to day, in English and Simplified Chinese. LAN sync is in development; see [ROADMAP.md](ROADMAP.md).
 
 ## Download
 
@@ -14,10 +14,10 @@ Grab the latest build from [Releases](https://github.com/zhpy2004/openmusic/rele
 
 | Platform | File | Notes |
 |---|---|---|
-| Windows | `openmusic-v0.5.0-windows-x64.zip` | Unzip and run `openmusic.exe`. No installer. Keep the folder intact |
-| Android | `openmusic-v0.5.0-android-universal.apk` | **Pick this if unsure** — works on every device |
-| Android | `openmusic-v0.5.0-android-arm64-v8a.apk` | Any phone from 2017 onward. Half the size |
-| Android | `openmusic-v0.5.0-android-armeabi-v7a.apk` | Older 32-bit devices |
+| Windows | `openmusic-v0.6.0-windows-x64.zip` | Unzip and run `openmusic.exe`. No installer. Keep the folder intact |
+| Android | `openmusic-v0.6.0-android-universal.apk` | **Pick this if unsure** — works on every device |
+| Android | `openmusic-v0.6.0-android-arm64-v8a.apk` | Any phone from 2017 onward. Half the size |
+| Android | `openmusic-v0.6.0-android-armeabi-v7a.apk` | Older 32-bit devices |
 
 On Android you'll need to allow installing apps from unknown sources. APKs are signed with a stable key, so later versions install as upgrades.
 
@@ -44,6 +44,10 @@ On Android you'll need to allow installing apps from unknown sources. APKs are s
 - Per-track scraping plus whole-library batch fill, from open data sources: iTunes Search, LRCLIB, and MusicBrainz + Cover Art Archive
 - **Audio file bytes are never modified.** Covers are written as `<track>.jpg`, lyrics as `<track>.lrc`, and title/artist corrections go into a database overlay — because touching the file header changes the content fingerprint, which would break every playlist and favorite that references the track
 - Batch fill only adds what's missing and never overwrites covers or lyrics you already have. When a match isn't confident enough it skips rather than attaching the wrong artwork
+
+**Language**
+- English and Simplified Chinese, following your system language by default
+- Switch it any time in Settings; the choice is remembered
 
 **Lyrics**
 - Line-level LRC scrolling, current line centered and highlighted, following playback
