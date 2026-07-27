@@ -56,6 +56,11 @@ dependencies:
   path: ^1.9.0
   path_provider: ^2.1.0
   scrollable_positioned_list: ^0.3.8
+  # 纯 Dart 密码学(X25519 密钥协商 / HKDF / HMAC-SHA256 / SHA-256)。
+  # 不引 cryptography_flutter(原生加速):本场景每次配对只算一次协商,
+  # 开销可忽略,而本项目已被原生插件钉版坑过三次。
+  # pointycastle 只有 secp* 系列 ECDH,没有 X25519,故不用它。
+  cryptography: ^2.9.0
 
 dev_dependencies:
   flutter_test:
