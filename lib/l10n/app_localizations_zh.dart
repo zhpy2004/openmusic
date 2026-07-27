@@ -312,6 +312,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get wizardEnterLibrary => '进入曲库';
 
   @override
+  String wizardScanFound(int count) {
+    return '扫描完成:找到 $count 首';
+  }
+
+  @override
   String get syncTitle => '设备同步';
 
   @override

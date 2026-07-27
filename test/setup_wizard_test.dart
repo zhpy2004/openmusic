@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openmusic/src/app/app.dart';
 import 'package:openmusic/src/app/providers.dart';
 import 'package:openmusic/src/data/database.dart';
+import 'package:openmusic/src/library/library_setup.dart';
 import 'package:openmusic/src/scraper/batch_scraper_service.dart';
 import 'package:openmusic/src/ui/batch_scrape_runner.dart';
 import 'package:openmusic/src/ui/setup_wizard.dart';
@@ -92,8 +93,8 @@ void main() {
       localizedApp(
         SetupWizard(
           roots: const [],
-          onAddFolder: () async {},
-          onScan: () async {},
+          onAddFolder: () async => AddFolderResult.added,
+          onScan: () async => 0,
           batchStreamBuilder: (_) => const Stream.empty(),
           onDismiss: () => dismissed = true,
           onFinish: () {},
@@ -111,8 +112,8 @@ void main() {
       localizedApp(
         SetupWizard(
           roots: const ['/music'], // 已有一个根
-          onAddFolder: () async {},
-          onScan: () async {},
+          onAddFolder: () async => AddFolderResult.added,
+          onScan: () async => 0,
           batchStreamBuilder: (_) => const Stream.empty(),
           onDismiss: () {},
           onFinish: () {},

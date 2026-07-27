@@ -632,6 +632,12 @@ abstract class AppLocalizations {
   /// **'Open library'**
   String get wizardEnterLibrary;
 
+  /// No description provided for @wizardScanFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan complete: {count, plural, =0{no tracks found} =1{1 track} other{{count} tracks}}'**
+  String wizardScanFound(int count);
+
   /// Title of the device sync screen
   ///
   /// In en, this message translates to:

@@ -101,6 +101,8 @@
   "wizardComplete": "建库完成",
   "wizardEnterLibrary": "进入曲库",
 
+  "wizardScanFound": "扫描完成:找到 {count} 首",
+
   "syncTitle": "设备同步",
   "syncSubtitle": "与局域网内的其他设备配对",
   "syncListening": "监听中 :{port}",

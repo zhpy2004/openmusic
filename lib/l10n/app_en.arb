@@ -119,6 +119,9 @@
   "wizardComplete": "All set",
   "wizardEnterLibrary": "Open library",
 
+  "wizardScanFound": "Scan complete: {count, plural, =0{no tracks found} =1{1 track} other{{count} tracks}}",
+  "@wizardScanFound": { "placeholders": { "count": {"type": "int"} } },
+
   "syncTitle": "Device sync",
   "@syncTitle": { "description": "Title of the device sync screen" },
   "syncSubtitle": "Pair with devices on your local network",

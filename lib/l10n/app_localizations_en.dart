@@ -349,6 +349,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wizardEnterLibrary => 'Open library';
 
   @override
+  String wizardScanFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tracks',
+      one: '1 track',
+      zero: 'no tracks found',
+    );
+    return 'Scan complete: $_temp0';
+  }
+
+  @override
   String get syncTitle => 'Device sync';
 
   @override

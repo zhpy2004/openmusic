@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../library/library_setup.dart';
 import '../scraper/batch_scraper_service.dart';
 import 'batch_scrape_runner.dart';
 
@@ -24,8 +25,13 @@ class SetupWizard extends StatefulWidget {
   });
 
   final List<String> roots;
-  final Future<void> Function() onAddFolder;
-  final Future<void> Function() onScan;
+
+  /// 加文件夹。**返回结果必须用起来** —— 早先丢弃返回值,Android 上权限被拒
+  /// 时向导毫无提示,用户只看到"加了但没加上"(烟测发现)。
+  final Future<AddFolderResult> Function() onAddFolder;
+
+  /// 跑扫描,返回扫完后曲库里的曲目总数(用于告诉用户"扫到了几首")。
+  final Future<int> Function() onScan;
   final Stream<BatchProgress> Function(bool Function() shouldCancel)
   batchStreamBuilder;
   final VoidCallback onDismiss;
@@ -114,7 +120,17 @@ class _SetupWizardState extends State<SetupWizard> {
                 ),
         ),
         OutlinedButton.icon(
-          onPressed: () async => widget.onAddFolder(),
+          onPressed: () async {
+            // 先取 messenger:await 之后再用传进来的 context 会触发
+            // use_build_context_synchronously(State.mounted 管不住它)。
+            final messenger = ScaffoldMessenger.of(context);
+            final result = await widget.onAddFolder();
+            if (result == AddFolderResult.permissionDenied) {
+              messenger.showSnackBar(
+                SnackBar(content: Text(l10n.needAudioPermission)),
+              );
+            }
+          },
           icon: const Icon(Icons.add),
           label: Text(l10n.addFolder),
         ),
@@ -146,14 +162,19 @@ class _SetupWizardState extends State<SetupWizard> {
         ] else
           FilledButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               setState(() => _scanning = true);
-              await widget.onScan();
-              if (mounted) {
-                setState(() {
-                  _scanning = false;
-                  _step = 3;
-                });
-              }
+              final found = await widget.onScan();
+              if (!mounted) return;
+              setState(() {
+                _scanning = false;
+                _step = 3;
+              });
+              // 扫到 0 首要说出来:选了个没有音乐的文件夹时,原来会一声不响
+              // 走到下一步,用户完全不知道发生了什么(烟测发现)。
+              messenger.showSnackBar(
+                SnackBar(content: Text(l10n.wizardScanFound(found))),
+              );
             },
             child: Text(l10n.wizardStartScan),
           ),

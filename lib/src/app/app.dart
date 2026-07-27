@@ -60,15 +60,18 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
     SettingsScreen(),
   ];
 
-  Future<void> _runScan() async {
+  /// 跑扫描,返回扫完后曲库里的曲目总数(向导据此告诉用户"扫到了几首")。
+  Future<int> _runScan() async {
+    final db = ref.read(databaseProvider);
     final notifier = ref.read(scanProgressProvider.notifier);
     final problemsNotifier = ref.read(lastScanProblemsProvider.notifier);
     await runLibraryScan(
-      db: ref.read(databaseProvider),
+      db: db,
       scanner: ref.read(scannerProvider),
       onProgress: (p) => notifier.state = p,
       onProblems: (probs) => problemsNotifier.state = probs,
     );
+    return (await db.watchTracks('').first).length;
   }
 
   Widget _buildWizard() {
