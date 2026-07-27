@@ -13,15 +13,17 @@ class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   Future<void> _addFolder(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await addScanFolder(ref.read(databaseProvider));
     if (result == AddFolderResult.permissionDenied && context.mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('需要音频读取权限才能扫描')));
+      ).showSnackBar(SnackBar(content: Text(l10n.needAudioPermission)));
     }
   }
 
   Future<void> _scan(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(scanProgressProvider.notifier);
     final problemsNotifier = ref.read(lastScanProblemsProvider.notifier);
     try {
@@ -35,13 +37,14 @@ class SettingsScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('扫描出错: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.scanFailed('$e'))));
       }
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final rootsAsync = ref.watch(scanRootsProvider);
     final progress = ref.watch(scanProgressProvider);
     final lastProblems = ref.watch(lastScanProblemsProvider);
@@ -77,8 +80,11 @@ class SettingsScreen extends ConsumerWidget {
           },
         ),
         const Divider(),
-        const ListTile(
-          title: Text('音乐文件夹', style: TextStyle(fontWeight: FontWeight.bold)),
+        ListTile(
+          title: Text(
+            l10n.musicFolders,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         ...?rootsAsync.value?.map(
           (root) => ListTile(
@@ -92,20 +98,22 @@ class SettingsScreen extends ConsumerWidget {
         ),
         ListTile(
           leading: const Icon(Icons.add),
-          title: Text(Platform.isAndroid ? '添加系统音乐文件夹' : '添加文件夹…'),
+          title: Text(
+            Platform.isAndroid ? l10n.addSystemMusicFolder : l10n.addFolder,
+          ),
           onTap: () => _addFolder(context, ref),
         ),
         const Divider(),
         if (progress == null)
           ListTile(
             leading: const Icon(Icons.refresh),
-            title: const Text('扫描曲库'),
+            title: Text(l10n.scanLibrary),
             onTap: () => _scan(context, ref),
           )
         else
           ListTile(
             leading: const CircularProgressIndicator(),
-            title: Text('扫描中 ${progress.scanned}/${progress.total}'),
+            title: Text(l10n.scanning(progress.scanned, progress.total)),
             subtitle: Text(
               progress.currentPath ?? '',
               maxLines: 1,
@@ -115,17 +123,17 @@ class SettingsScreen extends ConsumerWidget {
         if (progress != null && progress.problems.isNotEmpty)
           ListTile(
             leading: const Icon(Icons.warning_amber),
-            title: Text('问题文件 ${progress.problems.length} 个'),
+            title: Text(l10n.problemFiles(progress.problems.length)),
           ),
         if (progress == null && lastProblems.isNotEmpty) ...[
           const Divider(),
           ListTile(
             leading: const Icon(Icons.warning_amber),
-            title: Text('上次扫描有 ${lastProblems.length} 个问题'),
+            title: Text(l10n.lastScanProblems(lastProblems.length)),
             trailing: TextButton(
               onPressed: () =>
                   ref.read(lastScanProblemsProvider.notifier).state = const [],
-              child: const Text('清除'),
+              child: Text(l10n.clear),
             ),
           ),
           ...lastProblems.map(
@@ -142,8 +150,8 @@ class SettingsScreen extends ConsumerWidget {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.auto_fix_high),
-          title: const Text('批量补全封面/歌词'),
-          subtitle: const Text('给缺封面或缺歌词的曲目自动补全(可取消)'),
+          title: Text(l10n.batchFill),
+          subtitle: Text(l10n.batchFillSubtitle),
           onTap: () => _batchScrape(context, ref),
         ),
       ],
@@ -151,6 +159,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _batchScrape(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final db = ref.read(databaseProvider);
     final service = ref.read(batchScraperServiceProvider);
     final tracks = await db.watchTracks('').first; // 全库快照
@@ -171,7 +180,7 @@ class SettingsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
+            child: Text(l10n.close),
           ),
         ],
       ),

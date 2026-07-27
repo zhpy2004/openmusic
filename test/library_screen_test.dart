@@ -45,7 +45,7 @@ void main() {
       databaseProvider.overrideWithValue(db),
       audioEngineProvider.overrideWithValue(engine),
     ],
-    child: localizedApp(LibraryScreen()),
+    child: localizedApp(const LibraryScreen()),
   );
 
   testWidgets('列表展示曲目标题与歌手', (tester) async {

@@ -12,6 +12,7 @@ import 'package:openmusic/src/ui/setup_wizard.dart';
 
 import 'helpers/db.dart';
 import 'helpers/fakes.dart';
+import 'helpers/pump.dart';
 
 BatchProgress prog({
   int done = 0,
@@ -38,8 +39,8 @@ void main() {
     BatchProgress? summary;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
+      localizedApp(
+        Scaffold(
           body: BatchScrapeRunner(
             progressStream: ctrl.stream,
             onFinished: (s) => summary = s,
@@ -68,8 +69,8 @@ void main() {
     var cancelled = false;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
+      localizedApp(
+        Scaffold(
           body: BatchScrapeRunner(
             progressStream: ctrl.stream,
             onFinished: (_) {},
@@ -88,8 +89,8 @@ void main() {
   testWidgets('欢迎页:点开始进选文件夹步;点跳过触发 onDismiss', (tester) async {
     var dismissed = false;
     await tester.pumpWidget(
-      MaterialApp(
-        home: SetupWizard(
+      localizedApp(
+        SetupWizard(
           roots: const [],
           onAddFolder: () async {},
           onScan: () async {},
@@ -107,8 +108,8 @@ void main() {
 
   testWidgets('选文件夹步:有根可进扫描步(下一步可用)', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SetupWizard(
+      localizedApp(
+        SetupWizard(
           roots: const ['/music'], // 已有一个根
           onAddFolder: () async {},
           onScan: () async {},
@@ -139,7 +140,9 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('欢迎使用 OpenMusic'), findsOneWidget);
+    // OpenMusicApp 自带 MaterialApp,测试里无法从外部注入 locale;
+    // 测试环境默认英文,故断言英文文案。
+    expect(find.text('Welcome to OpenMusic'), findsOneWidget);
   });
 
   testWidgets('已有扫描根 => 直接显示曲库(无向导)', (tester) async {
@@ -160,8 +163,8 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('欢迎使用 OpenMusic'), findsNothing);
-    expect(find.text('曲库'), findsWidgets); // 导航项(宽屏 NavigationRail 标签)
+    expect(find.text('Welcome to OpenMusic'), findsNothing);
+    expect(find.text('Library'), findsWidgets); // 导航项(宽屏 NavigationRail 标签)
   });
 
   testWidgets('向导中新增文件夹(roots 变非空)不被踢回曲库', (tester) async {
@@ -181,9 +184,9 @@ void main() {
     );
     rootsCtrl.add(const <String>[]); // 空 => 进向导
     await tester.pump();
-    expect(find.text('欢迎使用 OpenMusic'), findsOneWidget);
+    expect(find.text('Welcome to OpenMusic'), findsOneWidget);
     rootsCtrl.add(const ['/music']); // 向导中新增文件夹
     await tester.pump();
-    expect(find.text('欢迎使用 OpenMusic'), findsOneWidget); // 仍在向导,没被踢回
+    expect(find.text('Welcome to OpenMusic'), findsOneWidget); // 仍在向导,没被踢回
   });
 }

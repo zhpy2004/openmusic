@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../scraper/batch_scraper_service.dart';
 
 /// 订阅一条 BatchProgress 流,渲染进度条 + 当前曲名 + 计数 + 取消,
@@ -44,6 +45,7 @@ class _BatchScrapeRunnerState extends State<BatchScrapeRunner> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final p = _p;
     if (p == null) {
       return const Center(child: CircularProgressIndicator());
@@ -54,9 +56,12 @@ class _BatchScrapeRunnerState extends State<BatchScrapeRunner> {
           padding: const EdgeInsets.all(16),
           child: Text(
             p.total == 0
-                ? '无缺封面/歌词的曲目,无需补全'
-                : '补全完成:封面 ${p.appliedCovers} · 歌词 ${p.appliedLyrics}'
-                      ' · 未找到 ${p.skippedNoMatch}',
+                ? l10n.batchNothingToFill
+                : l10n.batchDone(
+                    p.appliedCovers,
+                    p.appliedLyrics,
+                    p.skippedNoMatch,
+                  ),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium,
           ),
@@ -69,7 +74,7 @@ class _BatchScrapeRunnerState extends State<BatchScrapeRunner> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('补全封面/歌词 ${p.done}/${p.total}'),
+          Text(l10n.batchProgress(p.done, p.total)),
           const SizedBox(height: 8),
           LinearProgressIndicator(value: frac),
           const SizedBox(height: 8),
@@ -80,11 +85,11 @@ class _BatchScrapeRunnerState extends State<BatchScrapeRunner> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           Text(
-            '已补:封面 ${p.appliedCovers} · 歌词 ${p.appliedLyrics}',
+            l10n.batchFilledSoFar(p.appliedCovers, p.appliedLyrics),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (widget.onCancel != null)
-            TextButton(onPressed: widget.onCancel, child: const Text('取消')),
+            TextButton(onPressed: widget.onCancel, child: Text(l10n.cancel)),
         ],
       ),
     );

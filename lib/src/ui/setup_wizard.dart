@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../scraper/batch_scraper_service.dart';
 import 'batch_scrape_runner.dart';
 
@@ -44,12 +45,13 @@ class _SetupWizardState extends State<SetupWizard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('建库向导'),
+        title: Text(l10n.wizardTitle),
         actions: [
           if (_step < 4)
-            TextButton(onPressed: widget.onDismiss, child: const Text('跳过')),
+            TextButton(onPressed: widget.onDismiss, child: Text(l10n.skip)),
         ],
       ),
       body: SafeArea(
@@ -67,107 +69,143 @@ class _SetupWizardState extends State<SetupWizard> {
     );
   }
 
-  Widget _welcome(BuildContext context) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      const Icon(Icons.library_music, size: 72),
-      const SizedBox(height: 16),
-      Text('欢迎使用 OpenMusic', style: Theme.of(context).textTheme.headlineSmall),
-      const SizedBox(height: 8),
-      const Text('3 步建好曲库:选文件夹 → 扫描 → 补全封面/歌词', textAlign: TextAlign.center),
-      const SizedBox(height: 24),
-      FilledButton(
-        onPressed: () => setState(() => _step = 1),
-        child: const Text('开始'),
-      ),
-    ],
-  );
-
-  Widget _pickFolder(BuildContext context) => Column(
-    children: [
-      Text('选择音乐文件夹', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 12),
-      Expanded(
-        child: widget.roots.isEmpty
-            ? const Center(child: Text('还没有文件夹,点下面添加'))
-            : ListView(
-                children: [
-                  for (final r in widget.roots)
-                    ListTile(leading: const Icon(Icons.folder), title: Text(r)),
-                ],
-              ),
-      ),
-      OutlinedButton.icon(
-        onPressed: () async => widget.onAddFolder(),
-        icon: const Icon(Icons.add),
-        label: const Text('添加文件夹…'),
-      ),
-      const SizedBox(height: 12),
-      FilledButton(
-        onPressed: widget.roots.isEmpty
-            ? null
-            : () => setState(() => _step = 2),
-        child: const Text('下一步'),
-      ),
-    ],
-  );
-
-  Widget _scan(BuildContext context) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Text('扫描曲库', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 16),
-      if (_scanning) ...[
-        const CircularProgressIndicator(),
+  Widget _welcome(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.library_music, size: 72),
+        const SizedBox(height: 16),
+        Text(
+          l10n.wizardWelcome,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
         const SizedBox(height: 8),
-        Text(widget.scanStatus ?? '扫描中…'),
-      ] else
+        Text(l10n.wizardIntro, textAlign: TextAlign.center),
+        const SizedBox(height: 24),
         FilledButton(
-          onPressed: () async {
-            setState(() => _scanning = true);
-            await widget.onScan();
-            if (mounted) {
-              setState(() {
-                _scanning = false;
-                _step = 3;
-              });
-            }
-          },
-          child: const Text('开始扫描'),
+          onPressed: () => setState(() => _step = 1),
+          child: Text(l10n.start),
         ),
-    ],
-  );
+      ],
+    );
+  }
 
-  Widget _batch(BuildContext context) => Column(
-    children: [
-      Text('补全封面/歌词', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 8),
-      Expanded(
-        child: BatchScrapeRunner(
-          progressStream: widget.batchStreamBuilder(() => _cancelBatch),
-          onFinished: (_) {},
-          onCancel: () => setState(() => _cancelBatch = true),
+  Widget _pickFolder(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      children: [
+        Text(
+          l10n.wizardPickFolder,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-      ),
-      FilledButton(
-        onPressed: () => setState(() => _step = 4),
-        child: const Text('完成'),
-      ),
-      TextButton(
-        onPressed: () => setState(() => _step = 4),
-        child: const Text('跳过此步'),
-      ),
-    ],
-  );
+        const SizedBox(height: 12),
+        Expanded(
+          child: widget.roots.isEmpty
+              ? Center(child: Text(l10n.wizardNoFolders))
+              : ListView(
+                  children: [
+                    for (final r in widget.roots)
+                      ListTile(
+                        leading: const Icon(Icons.folder),
+                        title: Text(r),
+                      ),
+                  ],
+                ),
+        ),
+        OutlinedButton.icon(
+          onPressed: () async => widget.onAddFolder(),
+          icon: const Icon(Icons.add),
+          label: Text(l10n.addFolder),
+        ),
+        const SizedBox(height: 12),
+        FilledButton(
+          onPressed: widget.roots.isEmpty
+              ? null
+              : () => setState(() => _step = 2),
+          child: Text(l10n.next),
+        ),
+      ],
+    );
+  }
 
-  Widget _done(BuildContext context) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      const Icon(Icons.check_circle, size: 72),
-      const SizedBox(height: 16),
-      Text('建库完成', style: Theme.of(context).textTheme.headlineSmall),
-      const SizedBox(height: 24),
-      FilledButton(onPressed: widget.onFinish, child: const Text('进入曲库')),
-    ],
-  );
+  Widget _scan(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          l10n.wizardScanTitle,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 16),
+        if (_scanning) ...[
+          const CircularProgressIndicator(),
+          const SizedBox(height: 8),
+          Text(widget.scanStatus ?? l10n.wizardScanning),
+        ] else
+          FilledButton(
+            onPressed: () async {
+              setState(() => _scanning = true);
+              await widget.onScan();
+              if (mounted) {
+                setState(() {
+                  _scanning = false;
+                  _step = 3;
+                });
+              }
+            },
+            child: Text(l10n.wizardStartScan),
+          ),
+      ],
+    );
+  }
+
+  Widget _batch(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      children: [
+        Text(
+          l10n.wizardFillTitle,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: BatchScrapeRunner(
+            progressStream: widget.batchStreamBuilder(() => _cancelBatch),
+            onFinished: (_) {},
+            onCancel: () => setState(() => _cancelBatch = true),
+          ),
+        ),
+        FilledButton(
+          onPressed: () => setState(() => _step = 4),
+          child: Text(l10n.finish),
+        ),
+        TextButton(
+          onPressed: () => setState(() => _step = 4),
+          child: Text(l10n.wizardSkipStep),
+        ),
+      ],
+    );
+  }
+
+  Widget _done(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.check_circle, size: 72),
+        const SizedBox(height: 16),
+        Text(
+          l10n.wizardComplete,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: widget.onFinish,
+          child: Text(l10n.wizardEnterLibrary),
+        ),
+      ],
+    );
+  }
 }

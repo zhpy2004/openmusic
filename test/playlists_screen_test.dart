@@ -21,7 +21,7 @@ void main() {
 
   Widget app() => ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db)],
-    child: localizedApp(PlaylistsScreen()),
+    child: localizedApp(const PlaylistsScreen()),
   );
 
   testWidgets('置顶「我喜欢的」+ 列出歌单', (tester) async {

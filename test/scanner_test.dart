@@ -208,9 +208,7 @@ void main() {
     // 从而重读标签写回 tracks——这才是测试"override 被重新叠加"而非
     // "指纹变了导致 override 对不上号"的正确姿势。
     final f = File('${tmp.path}/a.mp3');
-    f.setLastModifiedSync(
-      f.lastModifiedSync().add(const Duration(seconds: 5)),
-    );
+    f.setLastModifiedSync(f.lastModifiedSync().add(const Duration(seconds: 5)));
     await scanner.scan([tmp.path]).drain<void>();
 
     all = await db.watchTracks('').first;

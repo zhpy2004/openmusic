@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../playback/audio_engine.dart';
 import 'lyrics_view.dart';
@@ -26,14 +27,15 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = ref.watch(playbackControllerProvider);
     final track = controller.currentTrack;
     final engine = controller.engine;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('正在播放')),
+      appBar: AppBar(title: Text(l10n.nowPlaying)),
       body: track == null
-          ? const Center(child: Text('没有正在播放的曲目'))
+          ? Center(child: Text(l10n.nothingPlaying))
           : Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -107,7 +109,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                               isFav ? Icons.favorite : Icons.favorite_border,
                               color: isFav ? Colors.pink : null,
                             ),
-                            tooltip: isFav ? '取消收藏' : '收藏',
+                            tooltip: isFav ? l10n.unfavorite : l10n.favorite,
                             onPressed: () =>
                                 ref.read(databaseProvider).toggleFavorite(fp),
                           );
@@ -185,12 +187,13 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   Widget _lyricsArea(String path, AudioEngine engine) {
     return Consumer(
       builder: (context, ref, _) {
+        final l10n = AppLocalizations.of(context)!;
         final async = ref.watch(lyricsProvider(path));
         return async.when(
           loading: () => const SizedBox.shrink(),
-          error: (_, _) => const Center(child: Text('暂无歌词')),
+          error: (_, _) => Center(child: Text(l10n.noLyrics)),
           data: (lyrics) => lyrics == null
-              ? const Center(child: Text('暂无歌词'))
+              ? Center(child: Text(l10n.noLyrics))
               : LyricsView(
                   // 按曲目 path 挂 key:切歌时强制重建 State,避免复用旧
                   // State 导致 _playingIndex/订阅停留在上一首。

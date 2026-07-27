@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../lyrics/lrc.dart';
 
 /// 滚轮式行级歌词。synced:当前行居中高亮 + 左时间戳 + 右 ▶ seek,随进度滚动。
@@ -223,7 +224,7 @@ class _LyricsViewState extends State<LyricsView> {
           ),
           IconButton(
             icon: const Icon(Icons.play_arrow),
-            tooltip: '从这一句播放',
+            tooltip: AppLocalizations.of(context)!.playFromHere,
             onPressed: () => _seekToLine(i),
           ),
         ],
@@ -238,7 +239,7 @@ class _LyricsViewState extends State<LyricsView> {
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 4),
           child: Text(
-            '无时间轴歌词',
+            AppLocalizations.of(context)!.lyricsNoTimestamps,
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),

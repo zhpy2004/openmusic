@@ -20,8 +20,10 @@ void main() {
   test('内容不同 → 指纹不同', () async {
     final a = write('a.mp3', List.generate(1000, (i) => i % 256));
     final b = write('b.mp3', List.generate(1000, (i) => (i + 1) % 256));
-    expect(await computeFileFingerprint(a),
-        isNot(await computeFileFingerprint(b)));
+    expect(
+      await computeFileFingerprint(a),
+      isNot(await computeFileFingerprint(b)),
+    );
   });
 
   test('大于 256KB 的文件只取头尾——头尾同、长度同则指纹同（设计如此）', () async {
@@ -35,8 +37,10 @@ void main() {
   test('长度不同 → 指纹不同', () async {
     final a = write('a.mp3', List.filled(1000, 7));
     final b = write('b.mp3', List.filled(1001, 7));
-    expect(await computeFileFingerprint(a),
-        isNot(await computeFileFingerprint(b)));
+    expect(
+      await computeFileFingerprint(a),
+      isNot(await computeFileFingerprint(b)),
+    );
   });
 
   test('空文件（0 字节）可算指纹，且与 1 字节文件不同', () async {
@@ -52,8 +56,10 @@ void main() {
     final variant = List<int>.from(base)..[128 * 1024 - 1] = 99;
     final a = write('a.mp3', base);
     final b = write('b.mp3', variant);
-    expect(await computeFileFingerprint(a),
-        isNot(await computeFileFingerprint(b)));
+    expect(
+      await computeFileFingerprint(a),
+      isNot(await computeFileFingerprint(b)),
+    );
   });
 
   test('正好 256KB：头尾窗口拼接全覆盖，改 128KB 边界处字节 → 指纹变', () async {
@@ -62,8 +68,10 @@ void main() {
     final variant = List<int>.from(base)..[128 * 1024] = 99;
     final a = write('a.flac', base);
     final b = write('b.flac', variant);
-    expect(await computeFileFingerprint(a),
-        isNot(await computeFileFingerprint(b)));
+    expect(
+      await computeFileFingerprint(a),
+      isNot(await computeFileFingerprint(b)),
+    );
   });
 
   test('128–256KB 之间（200KB）：头尾重叠全覆盖，改中间字节 → 指纹必须变', () async {
@@ -73,8 +81,10 @@ void main() {
     final variant = List<int>.from(base)..[150 * 1024] = 99;
     final a = write('a.mp3', base);
     final b = write('b.mp3', variant);
-    expect(await computeFileFingerprint(a),
-        isNot(await computeFileFingerprint(b)));
+    expect(
+      await computeFileFingerprint(a),
+      isNot(await computeFileFingerprint(b)),
+    );
   });
 
   test('golden：固定字节序列的指纹锁定为已知串（防格式漂移）', () async {

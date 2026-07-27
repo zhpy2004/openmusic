@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openmusic/src/lyrics/lrc.dart';
 import 'package:openmusic/src/ui/lyrics_view.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'helpers/pump.dart';
 
 Lyrics _synced() => const Lyrics([
   LrcLine(Duration(seconds: 0), 'line0'),
@@ -21,8 +22,8 @@ Future<void> _pump(
   required ValueChanged<Duration> onSeek,
 }) async {
   await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
+    localizedApp(
+      Scaffold(
         body: LyricsView(
           lyrics: lyrics,
           positionStream: stream,

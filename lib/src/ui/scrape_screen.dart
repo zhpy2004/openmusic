@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../data/database.dart';
 import '../scraper/metadata_source.dart';
@@ -43,6 +44,7 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
 
   Future<void> _apply() async {
     if (_pickedMatch == null && _pickedLyrics == null) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _busy = true);
     try {
       await ref
@@ -59,14 +61,14 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('已应用')));
+        ).showSnackBar(SnackBar(content: Text(l10n.applied)));
         Navigator.of(context).maybePop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('应用失败: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.applyFailed('$e'))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -75,8 +77,9 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('刮削')),
+      appBar: AppBar(title: Text(l10n.scrapeTitle)),
       body: FutureBuilder<ScrapeResults>(
         future: _future,
         builder: (context, snap) {
@@ -84,7 +87,7 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return Center(child: Text('搜索失败: ${snap.error}'));
+            return Center(child: Text(l10n.searchFailed('${snap.error}')));
           }
           final r = snap.data!;
           return ListView(
@@ -101,21 +104,21 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
                     vertical: 8,
                   ),
                   child: Text(
-                    '以下源暂不可用: ${r.failedSources.join("、")}',
+                    l10n.sourcesUnavailable(r.failedSources.join(', ')),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),
                   ),
                 ),
               if (r.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: Text('无匹配结果,可重试')),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(child: Text(l10n.noMatches)),
                 ),
               if (r.matches.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                  child: Text('匹配候选(封面 + 文本)'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Text(l10n.matchCandidates),
                 ),
                 // 用 ListTile + 单选图标而非 RadioListTile:后者的
                 // groupValue/onChanged 在 Flutter 3.32+ 已废弃(改用 RadioGroup
@@ -137,18 +140,18 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
                 CheckboxListTile(
                   value: _applyCover,
                   onChanged: (v) => setState(() => _applyCover = v ?? false),
-                  title: const Text('应用封面'),
+                  title: Text(l10n.applyCover),
                 ),
                 CheckboxListTile(
                   value: _applyText,
                   onChanged: (v) => setState(() => _applyText = v ?? false),
-                  title: const Text('应用文本修正'),
+                  title: Text(l10n.applyTextFix),
                 ),
               ],
               if (r.lyrics.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                  child: Text('歌词候选'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Text(l10n.lyricsCandidates),
                 ),
                 for (final l in r.lyrics)
                   ListTile(
@@ -159,7 +162,7 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
                     ),
                     title: Text('${l.title} — ${l.artist}'),
                     subtitle: Text(
-                      '${l.source}${l.hasSynced ? " · 带时间轴" : " · 纯文本"}',
+                      '${l.source} · ${l.hasSynced ? l10n.lyricsSynced : l10n.lyricsPlain}',
                     ),
                     selected: identical(_pickedLyrics, l),
                     onTap: () => setState(() => _pickedLyrics = l),
@@ -169,7 +172,7 @@ class _ScrapeScreenState extends ConsumerState<ScrapeScreen> {
                 padding: const EdgeInsets.all(16),
                 child: FilledButton(
                   onPressed: _busy ? null : _apply,
-                  child: const Text('应用'),
+                  child: Text(l10n.apply),
                 ),
               ),
             ],

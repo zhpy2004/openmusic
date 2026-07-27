@@ -45,7 +45,9 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
     final progress = ref.watch(scanProgressProvider);
     final scanStatus = progress == null
         ? null
-        : '扫描中 ${progress.scanned}/${progress.total}';
+        : AppLocalizations.of(
+            context,
+          )!.scanning(progress.scanned, progress.total);
     return SetupWizard(
       roots: roots,
       scanStatus: scanStatus,
@@ -67,6 +69,7 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
   Widget _buildHome(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final l10n = AppLocalizations.of(context)!;
         final wide = constraints.maxWidth >= 800; // 桌面=侧栏，手机=底栏（spec §5）
         final body = Column(
           children: [
@@ -87,18 +90,18 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
                   selectedIndex: _tab,
                   onDestinationSelected: (i) => setState(() => _tab = i),
                   labelType: NavigationRailLabelType.all,
-                  destinations: const [
+                  destinations: [
                     NavigationRailDestination(
-                      icon: Icon(Icons.library_music),
-                      label: Text('曲库'),
+                      icon: const Icon(Icons.library_music),
+                      label: Text(l10n.tabLibrary),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.queue_music),
-                      label: Text('歌单'),
+                      icon: const Icon(Icons.queue_music),
+                      label: Text(l10n.tabPlaylists),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.settings),
-                      label: Text('设置'),
+                      icon: const Icon(Icons.settings),
+                      label: Text(l10n.tabSettings),
                     ),
                   ],
                 ),
@@ -113,13 +116,19 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
           bottomNavigationBar: NavigationBar(
             selectedIndex: _tab,
             onDestinationSelected: (i) => setState(() => _tab = i),
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                icon: Icon(Icons.library_music),
-                label: '曲库',
+                icon: const Icon(Icons.library_music),
+                label: l10n.tabLibrary,
               ),
-              NavigationDestination(icon: Icon(Icons.queue_music), label: '歌单'),
-              NavigationDestination(icon: Icon(Icons.settings), label: '设置'),
+              NavigationDestination(
+                icon: const Icon(Icons.queue_music),
+                label: l10n.tabPlaylists,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.settings),
+                label: l10n.tabSettings,
+              ),
             ],
           ),
         );

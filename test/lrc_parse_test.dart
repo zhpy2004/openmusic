@@ -12,8 +12,10 @@ void main() {
 
   test('synced:三位毫秒原样解析', () {
     final r = parseLrc('[01:02.345]x');
-    expect(r.lines.single.time,
-        const Duration(minutes: 1, seconds: 2, milliseconds: 345));
+    expect(
+      r.lines.single.time,
+      const Duration(minutes: 1, seconds: 2, milliseconds: 345),
+    );
   });
 
   test('synced:无毫秒也接受', () {

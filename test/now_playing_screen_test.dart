@@ -8,6 +8,7 @@ import 'package:openmusic/src/ui/now_playing_screen.dart';
 
 import 'helpers/db.dart';
 import 'helpers/fakes.dart';
+import 'helpers/pump.dart';
 
 Track track(int id, String path, String title) => Track(
   id: id,
@@ -52,7 +53,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: NowPlayingScreen()),
+        child: localizedApp(const NowPlayingScreen()),
       ),
     );
 
@@ -84,7 +85,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: NowPlayingScreen()),
+        child: localizedApp(const NowPlayingScreen()),
       ),
     );
     await tester.pump();
@@ -121,7 +122,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: NowPlayingScreen()),
+        child: localizedApp(const NowPlayingScreen()),
       ),
     );
     await tester.pump();
@@ -154,7 +155,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: NowPlayingScreen()),
+        child: localizedApp(const NowPlayingScreen()),
       ),
     );
     await tester.pump();

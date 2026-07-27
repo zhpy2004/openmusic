@@ -42,8 +42,8 @@ Lyrics parseLrc(String raw) {
       if (frac != null) {
         ms = frac.length == 2 ? int.parse(frac) * 10 : int.parse(frac);
       }
-      var t = Duration(minutes: mm, seconds: ss, milliseconds: ms)
-              .inMilliseconds -
+      var t =
+          Duration(minutes: mm, seconds: ss, milliseconds: ms).inMilliseconds -
           offsetMs;
       if (t < 0) t = 0;
       timed.add(LrcLine(Duration(milliseconds: t), text));

@@ -39,7 +39,7 @@ Future<void> main() async {
         builder: () => OpenmusicAudioHandler(controller),
         config: const AudioServiceConfig(
           androidNotificationChannelId: 'dev.openmusic.channel.audio',
-          androidNotificationChannelName: 'OpenMusic 播放',
+          androidNotificationChannelName: 'OpenMusic',
           androidNotificationOngoing: true,
         ),
       );

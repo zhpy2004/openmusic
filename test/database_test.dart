@@ -9,15 +9,18 @@ void main() {
   setUp(() => db = AppDatabase(testExecutor()));
   tearDown(() => db.close());
 
-  TracksCompanion track(String path, {String title = 't', String artist = 'a'}) =>
-      TracksCompanion.insert(
-        path: path,
-        fingerprint: 'fp-$path',
-        title: title,
-        artist: Value(artist),
-        sizeBytes: 100,
-        mtimeMs: 1,
-      );
+  TracksCompanion track(
+    String path, {
+    String title = 't',
+    String artist = 'a',
+  }) => TracksCompanion.insert(
+    path: path,
+    fingerprint: 'fp-$path',
+    title: title,
+    artist: Value(artist),
+    sizeBytes: 100,
+    mtimeMs: 1,
+  );
 
   test('upsert 按 path 幂等：同 path 二次写入是更新不是新增', () async {
     await db.upsertTrack(track('/m/a.mp3', title: 'old'));
@@ -45,8 +48,12 @@ void main() {
   test('re-upsert 不变量：id 与 addedAt 保持首次插入值（承重语义，防回退）', () async {
     // 显式给首行一个远在过去的 addedAt——若 update 路径错误地重写 addedAt
     //（如改回 insertOnConflictUpdate 或全列 DoUpdate），对比必然失败。
-    await db.upsertTrack(track('/m/a.mp3', title: 'old')
-        .copyWith(addedAt: Value(DateTime.utc(2020, 1, 1))));
+    await db.upsertTrack(
+      track(
+        '/m/a.mp3',
+        title: 'old',
+      ).copyWith(addedAt: Value(DateTime.utc(2020, 1, 1))),
+    );
     final first = (await db.watchTracks('').first).single;
     await db.upsertTrack(track('/m/a.mp3', title: 'new'));
     final second = (await db.watchTracks('').first).single;
@@ -57,7 +64,9 @@ void main() {
 
   test('watchTracks 按标题/歌手模糊匹配', () async {
     await db.upsertTrack(track('/m/a.mp3', title: '晴天', artist: '周杰伦'));
-    await db.upsertTrack(track('/m/b.mp3', title: 'Yellow', artist: 'Coldplay'));
+    await db.upsertTrack(
+      track('/m/b.mp3', title: 'Yellow', artist: 'Coldplay'),
+    );
     expect((await db.watchTracks('周杰').first).length, 1);
     expect((await db.watchTracks('yellow').first).length, 1);
     expect((await db.watchTracks('不存在').first), isEmpty);
@@ -77,33 +86,45 @@ void main() {
     expect((await db.watchTracks('').first).length, 10);
   });
 
-  test('batchUpsertTracks：单批 300 行（100 冲突更新 + 200 新插入），id/addedAt 不变', () async {
-    final t0 = DateTime.utc(2020, 1, 1);
-    for (var i = 0; i < 100; i++) {
-      await db.upsertTrack(
-          track('/m/$i.mp3', title: 'old-$i').copyWith(addedAt: Value(t0)));
-    }
-    final before = {
-      for (final t in await db.watchTracks('').first)
-        t.path: (id: t.id, addedAt: t.addedAt),
-    };
+  test(
+    'batchUpsertTracks：单批 300 行（100 冲突更新 + 200 新插入），id/addedAt 不变',
+    () async {
+      final t0 = DateTime.utc(2020, 1, 1);
+      for (var i = 0; i < 100; i++) {
+        await db.upsertTrack(
+          track('/m/$i.mp3', title: 'old-$i').copyWith(addedAt: Value(t0)),
+        );
+      }
+      final before = {
+        for (final t in await db.watchTracks('').first)
+          t.path: (id: t.id, addedAt: t.addedAt),
+      };
 
-    await db.batchUpsertTracks([
-      for (var i = 0; i < 300; i++) track('/m/$i.mp3', title: 'new-$i'),
-    ]);
+      await db.batchUpsertTracks([
+        for (var i = 0; i < 300; i++) track('/m/$i.mp3', title: 'new-$i'),
+      ]);
 
-    final after = await db.watchTracks('').first;
-    expect(after.length, 300);
-    final byPath = {for (final t in after) t.path: t};
-    for (var i = 0; i < 300; i++) {
-      expect(byPath['/m/$i.mp3']!.title, 'new-$i', reason: '内容已更新: /m/$i.mp3');
-    }
-    for (var i = 0; i < 100; i++) {
-      final p = '/m/$i.mp3';
-      expect(byPath[p]!.id, before[p]!.id, reason: 'id 不变: $p');
-      expect(byPath[p]!.addedAt, before[p]!.addedAt, reason: 'addedAt 不变: $p');
-    }
-  });
+      final after = await db.watchTracks('').first;
+      expect(after.length, 300);
+      final byPath = {for (final t in after) t.path: t};
+      for (var i = 0; i < 300; i++) {
+        expect(
+          byPath['/m/$i.mp3']!.title,
+          'new-$i',
+          reason: '内容已更新: /m/$i.mp3',
+        );
+      }
+      for (var i = 0; i < 100; i++) {
+        final p = '/m/$i.mp3';
+        expect(byPath[p]!.id, before[p]!.id, reason: 'id 不变: $p');
+        expect(
+          byPath[p]!.addedAt,
+          before[p]!.addedAt,
+          reason: 'addedAt 不变: $p',
+        );
+      }
+    },
+  );
 
   test('scan roots 增删查', () async {
     await db.addScanRoot('/music');

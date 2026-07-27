@@ -11,6 +11,7 @@ import 'package:openmusic/src/scraper/scraper_service.dart';
 import 'package:openmusic/src/ui/scrape_screen.dart';
 
 import 'helpers/db.dart';
+import 'helpers/pump.dart';
 
 /// 不发网络的假服务:直接返回预置候选。
 class _FakeScraper extends ScraperService {
@@ -58,7 +59,7 @@ void main() {
       databaseProvider.overrideWithValue(db),
       scraperServiceProvider.overrideWithValue(svc),
     ],
-    child: MaterialApp(home: ScrapeScreen(track: t)),
+    child: localizedApp(ScrapeScreen(track: t)),
   );
 
   testWidgets('展示匹配候选与歌词候选', (tester) async {
