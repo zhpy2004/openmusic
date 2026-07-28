@@ -85,6 +85,32 @@ class AppSettings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// 本机设备身份(单行表,id 恒为 0)。M3 跨设备身份的本地一半。
+class LocalDevice extends Table {
+  IntColumn get id => integer().withDefault(const Constant(0))();
+  TextColumn get deviceId => text()();
+  TextColumn get deviceName => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 已配对的对端设备。sharedKey 是 base64 的 32 字节 HMAC 密钥。
+/// 在线状态**不落库**(来自 mDNS 实时流);lastAddress/lastContactAt 只在
+/// 配对成功与「测试连接」成功时写,属低频——按 tick 写会触发表级流失效风暴。
+class Peers extends Table {
+  TextColumn get deviceId => text()();
+  TextColumn get deviceName => text()();
+  TextColumn get platform => text()();
+  TextColumn get sharedKey => text()();
+  IntColumn get pairedAt => integer()();
+  TextColumn get lastAddress => text().nullable()();
+  IntColumn get lastContactAt => integer().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {deviceId};
+}
+
 /// 歌单成员 + 关联曲目(可能为 null=文件缺失/未扫描到)。
 class PlaylistEntry {
   const PlaylistEntry({required this.fp, required this.position, this.track});
@@ -103,6 +129,8 @@ class PlaylistEntry {
     PlayEvents,
     TrackOverrides,
     AppSettings,
+    LocalDevice,
+    Peers,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -111,7 +139,7 @@ class AppDatabase extends _$AppDatabase {
   final _rnd = Random();
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -131,6 +159,11 @@ class AppDatabase extends _$AppDatabase {
       // v3→v4:只新建本地设置表,其余表原样保留。
       if (from < 4) {
         await m.createTable(appSettings);
+      }
+      // v4→v5:只新建 M3-A 的两张表,其余表原样保留。
+      if (from < 5) {
+        await m.createTable(localDevice);
+        await m.createTable(peers);
       }
     },
   );
@@ -466,4 +499,77 @@ class AppDatabase extends _$AppDatabase {
       }
     });
   }
+
+  /// 首启写入本机身份;已存在则整行不动(deviceId 是跨设备身份,绝不能被改写)。
+  ///
+  /// **id 必须显式传 0**:id 是 INTEGER 主键,在 SQLite 里即 rowid 别名——
+  /// 省略该列时走 rowid 自动分配(1、2、3…),`withDefault(0)` 不生效,
+  /// 于是第二次调用不撞主键、insertOrIgnore 无从忽略,会插出第二行身份。
+  Future<void> ensureLocalDevice({
+    required String deviceId,
+    required String deviceName,
+  }) => into(localDevice).insert(
+    LocalDeviceCompanion.insert(
+      id: const Value(0),
+      deviceId: deviceId,
+      deviceName: deviceName,
+    ),
+    mode: InsertMode.insertOrIgnore,
+  );
+
+  Future<LocalDeviceData?> getLocalDevice() =>
+      select(localDevice).getSingleOrNull();
+
+  Future<void> setLocalDeviceName(String name) =>
+      (update(localDevice)).write(LocalDeviceCompanion(deviceName: Value(name)));
+
+  Stream<LocalDeviceData?> watchLocalDevice() =>
+      select(localDevice).watchSingleOrNull();
+
+  /// 配对成功写入。重复配对更新密钥与名字,但 **pairedAt 保留首次值**
+  /// (它是"何时建立信任"的记录,重新协商密钥不改变这一事实)。
+  /// 不碰 lastAddress/lastContactAt —— 那两列由 recordPeerContact 负责。
+  Future<void> upsertPeer({
+    required String deviceId,
+    required String deviceName,
+    required String platform,
+    required String sharedKey,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(peers).insert(
+      PeersCompanion.insert(
+        deviceId: deviceId,
+        deviceName: deviceName,
+        platform: platform,
+        sharedKey: sharedKey,
+        pairedAt: now,
+      ),
+      onConflict: DoUpdate(
+        (_) => PeersCompanion(
+          deviceName: Value(deviceName),
+          platform: Value(platform),
+          sharedKey: Value(sharedKey),
+        ),
+      ),
+    );
+  }
+
+  Future<Peer?> getPeer(String deviceId) =>
+      (select(peers)..where((p) => p.deviceId.equals(deviceId)))
+          .getSingleOrNull();
+
+  Stream<List<Peer>> watchPeers() =>
+      (select(peers)..orderBy([(p) => OrderingTerm.asc(p.deviceName)])).watch();
+
+  /// 只在配对成功与「测试连接」成功时调用(低频)。
+  Future<void> recordPeerContact(String deviceId, {required String address}) =>
+      (update(peers)..where((p) => p.deviceId.equals(deviceId))).write(
+        PeersCompanion(
+          lastAddress: Value(address),
+          lastContactAt: Value(DateTime.now().millisecondsSinceEpoch),
+        ),
+      );
+
+  Future<void> deletePeer(String deviceId) =>
+      (delete(peers)..where((p) => p.deviceId.equals(deviceId))).go();
 }

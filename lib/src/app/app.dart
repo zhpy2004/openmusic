@@ -1,14 +1,30 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/library_setup.dart';
+import '../sync/sync_controller.dart';
 import '../ui/library_screen.dart';
 import '../ui/now_playing_bar.dart';
+import '../ui/pair_request_prompt.dart';
 import '../ui/playlists_screen.dart';
 import '../ui/settings_screen.dart';
 import '../ui/setup_wizard.dart';
+
+/// Windows 上的界面字体。
+///
+/// **为什么要钉死**:Windows 的默认 UI 字体(Segoe UI)不含中日韩字形,系统会
+/// **逐字**回退,同一个词里不同的字可能落到不同字体上,各自字重实现不同 →
+/// 「解除配对」的「对」肉眼可见比「解除配」细,中英混排时更明显。指定一个
+/// 中英全覆盖的字体族,整句字重才一致。取不到该字体时 Flutter 自动退回默认,
+/// 不会崩。非 Windows 平台(Android)系统字体本就覆盖中文,保持默认。
+String? get _uiFontFamily => Platform.isWindows ? 'Microsoft YaHei UI' : null;
+
+List<String>? get _uiFontFallback =>
+    Platform.isWindows ? const ['Microsoft YaHei', 'Segoe UI'] : null;
 
 class OpenMusicApp extends ConsumerStatefulWidget {
   const OpenMusicApp({super.key});
@@ -22,6 +38,35 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
   bool _wizardDismissed = false;
   bool _decided = false; // 是否已根据首个 roots 值做出"是否进向导"的一次性决定
   bool _onboarding = false; // 锁存:进入向导后不因期间新增文件夹(roots 变非空)被踢出
+  AppLifecycleListener? _lifecycle;
+
+  /// 全局弹配对请求要用它取 Navigator —— MaterialApp.builder 的 context 在
+  /// Navigator 之上,showDialog 找不到 Navigator,只能走 navigatorKey。
+  final _navKey = GlobalKey<NavigatorState>();
+  bool _pairDialogOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 同步服务跟随 App 前台起停(M3-A 裁决 2)。首帧后再起,不拖慢启动;
+    // 起不来只会在同步页显示错误,不影响播放与曲库。
+    // syncAutoStart 默认 false(见 providers.dart),只有 main.dart 打开——
+    // 否则 widget 测试会被 HttpServer 的周期定时器判为"timer 未完成"。
+    if (!ref.read(syncAutoStartProvider)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(syncControllerProvider).start();
+    });
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(syncControllerProvider).start(),
+      onPause: () => ref.read(syncControllerProvider).stop(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle?.dispose();
+    super.dispose();
+  }
 
   static const _screens = [
     LibraryScreen(),
@@ -29,28 +74,30 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
     SettingsScreen(),
   ];
 
-  Future<void> _runScan() async {
+  /// 跑扫描,返回扫完后曲库里的曲目总数(向导据此告诉用户"扫到了几首")。
+  Future<int> _runScan() async {
+    final db = ref.read(databaseProvider);
     final notifier = ref.read(scanProgressProvider.notifier);
     final problemsNotifier = ref.read(lastScanProblemsProvider.notifier);
     await runLibraryScan(
-      db: ref.read(databaseProvider),
+      db: db,
       scanner: ref.read(scannerProvider),
       onProgress: (p) => notifier.state = p,
       onProblems: (probs) => problemsNotifier.state = probs,
     );
+    return (await db.watchTracks('').first).length;
   }
 
   Widget _buildWizard() {
     final roots = ref.watch(scanRootsProvider).value ?? const <String>[];
-    final progress = ref.watch(scanProgressProvider);
-    final scanStatus = progress == null
-        ? null
-        : AppLocalizations.of(
-            context,
-          )!.scanning(progress.scanned, progress.total);
+    // 进度**原样传下去,不在这里拼文案**:本方法的 context 是 _OpenMusicAppState
+    // 自己的,位于下面那个 MaterialApp 之上,没有 Localizations 祖先——
+    // 在这里调 AppLocalizations.of(context)! 会抛 Null check operator,
+    // 而它只在扫描进行中(progress != null)才触发:点"开始扫描"就白屏一闪、
+    // 向导被重建退回第一步。v0.6.0 国际化引入的回归,2026-07-27 真机抓到。
     return SetupWizard(
       roots: roots,
-      scanStatus: scanStatus,
+      scanProgress: ref.watch(scanProgressProvider),
       onAddFolder: () => addScanFolder(ref.read(databaseProvider)),
       onScan: _runScan,
       batchStreamBuilder: (cancel) {
@@ -136,8 +183,36 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
     );
   }
 
+  /// 对方发起配对时全局弹窗:请求可能在用户听歌、翻歌单时到达,
+  /// 只在同步页里渲染的话根本看不见(烟测发现)。
+  void _syncPairListener(SyncController? _, SyncController controller) {
+    final request = controller.incomingPair;
+    final navigator = _navKey.currentState;
+    if (navigator == null) return;
+
+    if (request != null && !_pairDialogOpen) {
+      _pairDialogOpen = true;
+      showDialog<void>(
+        context: navigator.context,
+        barrierDismissible: false,
+        builder: (_) => PairRequestPrompt(
+          request: request,
+          onAccept: controller.acceptIncomingPair,
+          onReject: controller.rejectIncomingPair,
+        ),
+      ).then((_) => _pairDialogOpen = false);
+      return;
+    }
+    // 用户已确认/拒绝(incomingPair 被清空)→ 收起弹窗。
+    if (request == null && _pairDialogOpen) {
+      _pairDialogOpen = false;
+      navigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<SyncController>(syncControllerProvider, _syncPairListener);
     final rootsAsync = ref.watch(scanRootsProvider);
     final localePref = ref.watch(localePreferenceProvider).value;
     // 首次拿到 roots 值时一次性决定:空则进向导并锁存;此后 roots 变化(如向导内
@@ -150,14 +225,22 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
 
     return MaterialApp(
       title: 'OpenMusic',
+      navigatorKey: _navKey,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: localeFromPreference(localePref),
-      theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+      theme: ThemeData(
+        colorSchemeSeed: Colors.teal,
+        useMaterial3: true,
+        fontFamily: _uiFontFamily,
+        fontFamilyFallback: _uiFontFallback,
+      ),
       darkTheme: ThemeData(
         colorSchemeSeed: Colors.teal,
         brightness: Brightness.dark,
         useMaterial3: true,
+        fontFamily: _uiFontFamily,
+        fontFamilyFallback: _uiFontFallback,
       ),
       // roots 未加载完前给中性 loading,避免向导/曲库任一方闪一帧。
       home: !_decided

@@ -53,4 +53,6 @@ iOS / macOS / Linux, equalizer, Chromecast / Android Auto, Subsonic client mode,
 
 ## Maybe later
 
-Roughly by demand: word-level + desktop lyrics → Subsonic client mode → equalizer → Android Auto.
+**Pick your own music folder on Android** (today the scanner is fixed to the system music directory `/storage/emulated/0/Music`, so anyone keeping music elsewhere can't build a library; needs SAF directory picking).
+
+The rest, roughly by demand: word-level + desktop lyrics → Subsonic client mode → equalizer → Android Auto.

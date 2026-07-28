@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
   /// No description provided for @delete.
   ///
   /// In en, this message translates to:
@@ -625,6 +631,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open library'**
   String get wizardEnterLibrary;
+
+  /// No description provided for @wizardScanFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan complete: {count, plural, =0{no tracks found} =1{1 track} other{{count} tracks}}'**
+  String wizardScanFound(int count);
+
+  /// Title of the device sync screen
+  ///
+  /// In en, this message translates to:
+  /// **'Device sync'**
+  String get syncTitle;
+
+  /// No description provided for @syncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair with devices on your local network'**
+  String get syncSubtitle;
+
+  /// No description provided for @syncListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening on :{port}'**
+  String syncListening(int port);
+
+  /// No description provided for @syncNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not running'**
+  String get syncNotStarted;
+
+  /// No description provided for @syncStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync service not running: {error}'**
+  String syncStartFailed(String error);
+
+  /// No description provided for @syncRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get syncRetry;
+
+  /// No description provided for @syncRenameDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename device'**
+  String get syncRenameDevice;
+
+  /// No description provided for @syncPairedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired devices'**
+  String get syncPairedSection;
+
+  /// No description provided for @syncNoPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'No paired devices yet'**
+  String get syncNoPaired;
+
+  /// No description provided for @syncDiscoveredSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Found on your network'**
+  String get syncDiscoveredSection;
+
+  /// No description provided for @syncNothingFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No other devices found'**
+  String get syncNothingFound;
+
+  /// No description provided for @syncNothingFoundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure both devices are on the same Wi-Fi and have openmusic open'**
+  String get syncNothingFoundHint;
+
+  /// No description provided for @syncOnlineAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Online · {address}'**
+  String syncOnlineAt(String address);
+
+  /// No description provided for @syncOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get syncOffline;
+
+  /// No description provided for @syncIncompatible.
+  ///
+  /// In en, this message translates to:
+  /// **'Different protocol version — please update openmusic'**
+  String get syncIncompatible;
+
+  /// No description provided for @syncPair.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair'**
+  String get syncPair;
+
+  /// No description provided for @syncUnpair.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpair'**
+  String get syncUnpair;
+
+  /// No description provided for @syncTestConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get syncTestConnection;
+
+  /// No description provided for @syncPairingWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing with {device}'**
+  String syncPairingWith(String device);
+
+  /// No description provided for @syncNegotiating.
+  ///
+  /// In en, this message translates to:
+  /// **'Negotiating keys…'**
+  String get syncNegotiating;
+
+  /// No description provided for @syncCompareCodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Check that the other device shows the same number:'**
+  String get syncCompareCodes;
+
+  /// No description provided for @syncWaitingPeer.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the other device (up to 60 s)…'**
+  String get syncWaitingPeer;
+
+  /// No description provided for @syncPairRequestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing request'**
+  String get syncPairRequestTitle;
+
+  /// No description provided for @syncPairRequestFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'{device} wants to pair with this device'**
+  String syncPairRequestFrom(String device);
+
+  /// No description provided for @syncCodesMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbers match'**
+  String get syncCodesMatch;
+
+  /// No description provided for @syncRejectPair.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get syncRejectPair;
+
+  /// No description provided for @syncPairedWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired with {device}'**
+  String syncPairedWith(String device);
+
+  /// No description provided for @syncPairRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device declined'**
+  String get syncPairRejected;
+
+  /// No description provided for @syncPairTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device did not confirm; pairing cancelled'**
+  String get syncPairTimedOut;
+
+  /// No description provided for @syncPairFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing failed: could not reach the other device'**
+  String get syncPairFailed;
+
+  /// No description provided for @syncHelloResult.
+  ///
+  /// In en, this message translates to:
+  /// **'{device} ({platform}) · {count, plural, =1{1 track} other{{count} tracks}} · protocol v{pv}'**
+  String syncHelloResult(String device, String platform, int count, int pv);
+
+  /// No description provided for @syncAuthUnknownDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device has unpaired from this one; pair again'**
+  String get syncAuthUnknownDevice;
+
+  /// No description provided for @syncAuthClockSkew.
+  ///
+  /// In en, this message translates to:
+  /// **'The two devices\' clocks differ by more than 5 minutes; please correct the system time'**
+  String get syncAuthClockSkew;
+
+  /// No description provided for @syncAuthOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed: {reason}'**
+  String syncAuthOther(String reason);
+
+  /// No description provided for @syncConnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed: {error}'**
+  String syncConnectFailed(String error);
+
+  /// No description provided for @syncUnpairTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpair from {device}?'**
+  String syncUnpairTitle(String device);
+
+  /// No description provided for @syncUnpairBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This only removes the record on this device — the other device still keeps its pairing. Do it on both devices to fully disconnect.\n\nNo music files are deleted.'**
+  String get syncUnpairBody;
+
+  /// No description provided for @syncPermissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Without the “nearby devices” permission, devices on your network can\'t be found.'**
+  String get syncPermissionNeeded;
+
+  /// No description provided for @syncGrantPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant permission'**
+  String get syncGrantPermission;
+
+  /// No description provided for @syncOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open system settings'**
+  String get syncOpenSettings;
 
   /// No description provided for @problemRootUnreachable.
   ///

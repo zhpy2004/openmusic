@@ -12,6 +12,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cancel => '取消';
 
   @override
+  String get save => '保存';
+
+  @override
   String get delete => '删除';
 
   @override
@@ -307,6 +310,152 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get wizardEnterLibrary => '进入曲库';
+
+  @override
+  String wizardScanFound(int count) {
+    return '扫描完成:找到 $count 首';
+  }
+
+  @override
+  String get syncTitle => '设备同步';
+
+  @override
+  String get syncSubtitle => '与局域网内的其他设备配对';
+
+  @override
+  String syncListening(int port) {
+    return '监听中 :$port';
+  }
+
+  @override
+  String get syncNotStarted => '未启动';
+
+  @override
+  String syncStartFailed(String error) {
+    return '同步服务未启动:$error';
+  }
+
+  @override
+  String get syncRetry => '重试';
+
+  @override
+  String get syncRenameDevice => '改设备名';
+
+  @override
+  String get syncPairedSection => '已配对设备';
+
+  @override
+  String get syncNoPaired => '还没有配对过任何设备';
+
+  @override
+  String get syncDiscoveredSection => '局域网内发现';
+
+  @override
+  String get syncNothingFound => '没有发现其他设备';
+
+  @override
+  String get syncNothingFoundHint => '确认两台设备连在同一个 WiFi,且都打开了 openmusic';
+
+  @override
+  String syncOnlineAt(String address) {
+    return '在线 · $address';
+  }
+
+  @override
+  String get syncOffline => '离线';
+
+  @override
+  String get syncIncompatible => '协议版本不同,需要升级 openmusic';
+
+  @override
+  String get syncPair => '配对';
+
+  @override
+  String get syncUnpair => '解除配对';
+
+  @override
+  String get syncTestConnection => '测试连接';
+
+  @override
+  String syncPairingWith(String device) {
+    return '与 $device 配对';
+  }
+
+  @override
+  String get syncNegotiating => '正在协商密钥…';
+
+  @override
+  String get syncCompareCodes => '确认对方屏幕上显示的是同一个数字:';
+
+  @override
+  String get syncWaitingPeer => '等待对方确认(最多 60 秒)…';
+
+  @override
+  String get syncPairRequestTitle => '配对请求';
+
+  @override
+  String syncPairRequestFrom(String device) {
+    return '$device 请求与本机配对';
+  }
+
+  @override
+  String get syncCodesMatch => '两边数字一致';
+
+  @override
+  String get syncRejectPair => '拒绝';
+
+  @override
+  String syncPairedWith(String device) {
+    return '已与 $device 配对';
+  }
+
+  @override
+  String get syncPairRejected => '对方拒绝了配对';
+
+  @override
+  String get syncPairTimedOut => '对方未确认,配对已取消';
+
+  @override
+  String get syncPairFailed => '配对失败:无法连接对方设备';
+
+  @override
+  String syncHelloResult(String device, String platform, int count, int pv) {
+    return '$device($platform)· 曲目 $count · 协议 v$pv';
+  }
+
+  @override
+  String get syncAuthUnknownDevice => '对方已解除与本机的配对,请重新配对';
+
+  @override
+  String get syncAuthClockSkew => '两台设备时间相差超过 5 分钟,请校准系统时间';
+
+  @override
+  String syncAuthOther(String reason) {
+    return '鉴权失败:$reason';
+  }
+
+  @override
+  String syncConnectFailed(String error) {
+    return '连接失败:$error';
+  }
+
+  @override
+  String syncUnpairTitle(String device) {
+    return '解除与 $device 的配对?';
+  }
+
+  @override
+  String get syncUnpairBody =>
+      '只会删除本机上的记录,对方设备上仍保留着与本机的配对。要彻底断开,请在两台设备上都执行一次。\n\n不会删除任何音乐文件。';
+
+  @override
+  String get syncPermissionNeeded => '没有「附近的设备」权限,因此看不到局域网里的其他设备。';
+
+  @override
+  String get syncGrantPermission => '授予权限';
+
+  @override
+  String get syncOpenSettings => '去系统设置开启';
 
   @override
   String problemRootUnreachable(String path) {

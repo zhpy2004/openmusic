@@ -9,6 +9,12 @@
          audio_service 的 startForegroundService 被拒(mAllowStartForeground false),
          通知栏/锁屏都没有媒体控件。 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 网络访问。Flutter 模板只把 INTERNET 放进 debug/profile 清单,release 包
+         因此没有该权限——刮削(M2-B/M2-D)与局域网同步在正式包里都会连不上网。 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+ 的 mDNS 发现需要。neverForLocation:本 App 不用它推定位置。 -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
     <application
         android:label="openmusic"
         android:name="${applicationName}"

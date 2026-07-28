@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openmusic/src/app/providers.dart';
 import 'package:openmusic/src/data/database.dart';
+import 'package:openmusic/src/library/library_setup.dart';
 import 'package:openmusic/src/ui/favorites_screen.dart';
 import 'package:openmusic/src/ui/setup_wizard.dart';
 
@@ -35,8 +36,8 @@ void main() {
       localizedApp(
         SetupWizard(
           roots: const [],
-          onAddFolder: () async {},
-          onScan: () async {},
+          onAddFolder: () async => AddFolderResult.added,
+          onScan: () async => 0,
           batchStreamBuilder: (_) => const Stream.empty(),
           onDismiss: () {},
           onFinish: () {},
@@ -55,8 +56,8 @@ void main() {
       localizedApp(
         SetupWizard(
           roots: const [],
-          onAddFolder: () async {},
-          onScan: () async {},
+          onAddFolder: () async => AddFolderResult.added,
+          onScan: () async => 0,
           batchStreamBuilder: (_) => const Stream.empty(),
           onDismiss: () {},
           onFinish: () {},

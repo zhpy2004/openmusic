@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../library/library_setup.dart';
+import '../library/scanner.dart';
 import '../scraper/batch_scraper_service.dart';
 import 'batch_scrape_runner.dart';
 
@@ -20,19 +22,28 @@ class SetupWizard extends StatefulWidget {
     required this.batchStreamBuilder,
     required this.onDismiss,
     required this.onFinish,
-    this.scanStatus,
+    this.scanProgress,
   });
 
   final List<String> roots;
-  final Future<void> Function() onAddFolder;
-  final Future<void> Function() onScan;
+
+  /// 加文件夹。**返回结果必须用起来** —— 早先丢弃返回值,Android 上权限被拒
+  /// 时向导毫无提示,用户只看到"加了但没加上"(烟测发现)。
+  final Future<AddFolderResult> Function() onAddFolder;
+
+  /// 跑扫描,返回扫完后曲库里的曲目总数(用于告诉用户"扫到了几首")。
+  final Future<int> Function() onScan;
   final Stream<BatchProgress> Function(bool Function() shouldCancel)
   batchStreamBuilder;
   final VoidCallback onDismiss;
   final VoidCallback onFinish;
 
-  /// 扫描步的实时状态文案(可选;由调用方从 scanProgressProvider 传入)。
-  final String? scanStatus;
+  /// 扫描进度(可选;调用方从 scanProgressProvider 原样传入)。
+  ///
+  /// **传的是类型化对象而非拼好的文案**:调用方 `_buildWizard` 的 context 在
+  /// MaterialApp 之上,拿不到 Localizations,在那里拼文案会抛空断言。文案由
+  /// 本组件渲染 —— 这里的 context 在 MaterialApp 之下。
+  final ScanProgress? scanProgress;
 
   @override
   State<SetupWizard> createState() => _SetupWizardState();
@@ -42,6 +53,17 @@ class _SetupWizardState extends State<SetupWizard> {
   int _step = 0; // 0 欢迎 1 选文件夹 2 扫描 3 批量 4 完成
   bool _scanning = false;
   bool _cancelBatch = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 已经有扫描根 = 用户显然过了"选文件夹"这步,直接从扫描步开始。
+    //
+    // 这既是合理行为(向导不该问你要一个你已经加好的文件夹),也是对
+    // 烟测发现的那个问题的兜底:Android 上曾出现向导 State 被重建、
+    // 用户被踢回欢迎页从头再来一遍(根因未查实,见 deferred-bugs)。
+    if (widget.roots.isNotEmpty) _step = 2;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +136,17 @@ class _SetupWizardState extends State<SetupWizard> {
                 ),
         ),
         OutlinedButton.icon(
-          onPressed: () async => widget.onAddFolder(),
+          onPressed: () async {
+            // 先取 messenger:await 之后再用传进来的 context 会触发
+            // use_build_context_synchronously(State.mounted 管不住它)。
+            final messenger = ScaffoldMessenger.of(context);
+            final result = await widget.onAddFolder();
+            if (result == AddFolderResult.permissionDenied) {
+              messenger.showSnackBar(
+                SnackBar(content: Text(l10n.needAudioPermission)),
+              );
+            }
+          },
           icon: const Icon(Icons.add),
           label: Text(l10n.addFolder),
         ),
@@ -142,18 +174,30 @@ class _SetupWizardState extends State<SetupWizard> {
         if (_scanning) ...[
           const CircularProgressIndicator(),
           const SizedBox(height: 8),
-          Text(widget.scanStatus ?? l10n.wizardScanning),
+          Text(
+            widget.scanProgress == null
+                ? l10n.wizardScanning
+                : l10n.scanning(
+                    widget.scanProgress!.scanned,
+                    widget.scanProgress!.total,
+                  ),
+          ),
         ] else
           FilledButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               setState(() => _scanning = true);
-              await widget.onScan();
-              if (mounted) {
-                setState(() {
-                  _scanning = false;
-                  _step = 3;
-                });
-              }
+              final found = await widget.onScan();
+              if (!mounted) return;
+              setState(() {
+                _scanning = false;
+                _step = 3;
+              });
+              // 扫到 0 首要说出来:选了个没有音乐的文件夹时,原来会一声不响
+              // 走到下一步,用户完全不知道发生了什么(烟测发现)。
+              messenger.showSnackBar(
+                SnackBar(content: Text(l10n.wizardScanFound(found))),
+              );
             },
             child: Text(l10n.wizardStartScan),
           ),

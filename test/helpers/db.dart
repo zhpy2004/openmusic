@@ -27,3 +27,19 @@ QueryExecutor testExecutor() {
     closeStreamsSynchronously: true,
   );
 }
+
+/// 文件型测试库:迁移测试需要"关掉再重新打开同一个库",内存库做不到
+/// (关掉即销毁)。与 testExecutor 共用同一份 sqlite3.dll 覆盖逻辑。
+QueryExecutor testFileExecutor(String path) {
+  if (Platform.isWindows && !_overridden) {
+    _overridden = true;
+    open.overrideFor(
+      OperatingSystem.windows,
+      () => DynamicLibrary.open('tool/sqlite3/sqlite3.dll'),
+    );
+  }
+  return DatabaseConnection(
+    NativeDatabase(File(path)),
+    closeStreamsSynchronously: true,
+  );
+}

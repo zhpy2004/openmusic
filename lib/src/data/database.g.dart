@@ -2603,6 +2603,740 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   }
 }
 
+class $LocalDeviceTable extends LocalDevice
+    with TableInfo<$LocalDeviceTable, LocalDeviceData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalDeviceTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceNameMeta = const VerificationMeta(
+    'deviceName',
+  );
+  @override
+  late final GeneratedColumn<String> deviceName = GeneratedColumn<String>(
+    'device_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, deviceId, deviceName];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_device';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalDeviceData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('device_name')) {
+      context.handle(
+        _deviceNameMeta,
+        deviceName.isAcceptableOrUnknown(data['device_name']!, _deviceNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceNameMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalDeviceData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalDeviceData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      deviceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_name'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalDeviceTable createAlias(String alias) {
+    return $LocalDeviceTable(attachedDatabase, alias);
+  }
+}
+
+class LocalDeviceData extends DataClass implements Insertable<LocalDeviceData> {
+  final int id;
+  final String deviceId;
+  final String deviceName;
+  const LocalDeviceData({
+    required this.id,
+    required this.deviceId,
+    required this.deviceName,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['device_id'] = Variable<String>(deviceId);
+    map['device_name'] = Variable<String>(deviceName);
+    return map;
+  }
+
+  LocalDeviceCompanion toCompanion(bool nullToAbsent) {
+    return LocalDeviceCompanion(
+      id: Value(id),
+      deviceId: Value(deviceId),
+      deviceName: Value(deviceName),
+    );
+  }
+
+  factory LocalDeviceData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalDeviceData(
+      id: serializer.fromJson<int>(json['id']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      deviceName: serializer.fromJson<String>(json['deviceName']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'deviceName': serializer.toJson<String>(deviceName),
+    };
+  }
+
+  LocalDeviceData copyWith({int? id, String? deviceId, String? deviceName}) =>
+      LocalDeviceData(
+        id: id ?? this.id,
+        deviceId: deviceId ?? this.deviceId,
+        deviceName: deviceName ?? this.deviceName,
+      );
+  LocalDeviceData copyWithCompanion(LocalDeviceCompanion data) {
+    return LocalDeviceData(
+      id: data.id.present ? data.id.value : this.id,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      deviceName: data.deviceName.present
+          ? data.deviceName.value
+          : this.deviceName,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalDeviceData(')
+          ..write('id: $id, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('deviceName: $deviceName')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, deviceId, deviceName);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalDeviceData &&
+          other.id == this.id &&
+          other.deviceId == this.deviceId &&
+          other.deviceName == this.deviceName);
+}
+
+class LocalDeviceCompanion extends UpdateCompanion<LocalDeviceData> {
+  final Value<int> id;
+  final Value<String> deviceId;
+  final Value<String> deviceName;
+  const LocalDeviceCompanion({
+    this.id = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.deviceName = const Value.absent(),
+  });
+  LocalDeviceCompanion.insert({
+    this.id = const Value.absent(),
+    required String deviceId,
+    required String deviceName,
+  }) : deviceId = Value(deviceId),
+       deviceName = Value(deviceName);
+  static Insertable<LocalDeviceData> custom({
+    Expression<int>? id,
+    Expression<String>? deviceId,
+    Expression<String>? deviceName,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (deviceId != null) 'device_id': deviceId,
+      if (deviceName != null) 'device_name': deviceName,
+    });
+  }
+
+  LocalDeviceCompanion copyWith({
+    Value<int>? id,
+    Value<String>? deviceId,
+    Value<String>? deviceName,
+  }) {
+    return LocalDeviceCompanion(
+      id: id ?? this.id,
+      deviceId: deviceId ?? this.deviceId,
+      deviceName: deviceName ?? this.deviceName,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (deviceName.present) {
+      map['device_name'] = Variable<String>(deviceName.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalDeviceCompanion(')
+          ..write('id: $id, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('deviceName: $deviceName')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PeersTable extends Peers with TableInfo<$PeersTable, Peer> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PeersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceNameMeta = const VerificationMeta(
+    'deviceName',
+  );
+  @override
+  late final GeneratedColumn<String> deviceName = GeneratedColumn<String>(
+    'device_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sharedKeyMeta = const VerificationMeta(
+    'sharedKey',
+  );
+  @override
+  late final GeneratedColumn<String> sharedKey = GeneratedColumn<String>(
+    'shared_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pairedAtMeta = const VerificationMeta(
+    'pairedAt',
+  );
+  @override
+  late final GeneratedColumn<int> pairedAt = GeneratedColumn<int>(
+    'paired_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastAddressMeta = const VerificationMeta(
+    'lastAddress',
+  );
+  @override
+  late final GeneratedColumn<String> lastAddress = GeneratedColumn<String>(
+    'last_address',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastContactAtMeta = const VerificationMeta(
+    'lastContactAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastContactAt = GeneratedColumn<int>(
+    'last_contact_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    deviceId,
+    deviceName,
+    platform,
+    sharedKey,
+    pairedAt,
+    lastAddress,
+    lastContactAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'peers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Peer> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('device_name')) {
+      context.handle(
+        _deviceNameMeta,
+        deviceName.isAcceptableOrUnknown(data['device_name']!, _deviceNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceNameMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('shared_key')) {
+      context.handle(
+        _sharedKeyMeta,
+        sharedKey.isAcceptableOrUnknown(data['shared_key']!, _sharedKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sharedKeyMeta);
+    }
+    if (data.containsKey('paired_at')) {
+      context.handle(
+        _pairedAtMeta,
+        pairedAt.isAcceptableOrUnknown(data['paired_at']!, _pairedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pairedAtMeta);
+    }
+    if (data.containsKey('last_address')) {
+      context.handle(
+        _lastAddressMeta,
+        lastAddress.isAcceptableOrUnknown(
+          data['last_address']!,
+          _lastAddressMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_contact_at')) {
+      context.handle(
+        _lastContactAtMeta,
+        lastContactAt.isAcceptableOrUnknown(
+          data['last_contact_at']!,
+          _lastContactAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {deviceId};
+  @override
+  Peer map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Peer(
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      deviceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_name'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      sharedKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}shared_key'],
+      )!,
+      pairedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}paired_at'],
+      )!,
+      lastAddress: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_address'],
+      ),
+      lastContactAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_contact_at'],
+      ),
+    );
+  }
+
+  @override
+  $PeersTable createAlias(String alias) {
+    return $PeersTable(attachedDatabase, alias);
+  }
+}
+
+class Peer extends DataClass implements Insertable<Peer> {
+  final String deviceId;
+  final String deviceName;
+  final String platform;
+  final String sharedKey;
+  final int pairedAt;
+  final String? lastAddress;
+  final int? lastContactAt;
+  const Peer({
+    required this.deviceId,
+    required this.deviceName,
+    required this.platform,
+    required this.sharedKey,
+    required this.pairedAt,
+    this.lastAddress,
+    this.lastContactAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['device_id'] = Variable<String>(deviceId);
+    map['device_name'] = Variable<String>(deviceName);
+    map['platform'] = Variable<String>(platform);
+    map['shared_key'] = Variable<String>(sharedKey);
+    map['paired_at'] = Variable<int>(pairedAt);
+    if (!nullToAbsent || lastAddress != null) {
+      map['last_address'] = Variable<String>(lastAddress);
+    }
+    if (!nullToAbsent || lastContactAt != null) {
+      map['last_contact_at'] = Variable<int>(lastContactAt);
+    }
+    return map;
+  }
+
+  PeersCompanion toCompanion(bool nullToAbsent) {
+    return PeersCompanion(
+      deviceId: Value(deviceId),
+      deviceName: Value(deviceName),
+      platform: Value(platform),
+      sharedKey: Value(sharedKey),
+      pairedAt: Value(pairedAt),
+      lastAddress: lastAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastAddress),
+      lastContactAt: lastContactAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastContactAt),
+    );
+  }
+
+  factory Peer.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Peer(
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      deviceName: serializer.fromJson<String>(json['deviceName']),
+      platform: serializer.fromJson<String>(json['platform']),
+      sharedKey: serializer.fromJson<String>(json['sharedKey']),
+      pairedAt: serializer.fromJson<int>(json['pairedAt']),
+      lastAddress: serializer.fromJson<String?>(json['lastAddress']),
+      lastContactAt: serializer.fromJson<int?>(json['lastContactAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'deviceId': serializer.toJson<String>(deviceId),
+      'deviceName': serializer.toJson<String>(deviceName),
+      'platform': serializer.toJson<String>(platform),
+      'sharedKey': serializer.toJson<String>(sharedKey),
+      'pairedAt': serializer.toJson<int>(pairedAt),
+      'lastAddress': serializer.toJson<String?>(lastAddress),
+      'lastContactAt': serializer.toJson<int?>(lastContactAt),
+    };
+  }
+
+  Peer copyWith({
+    String? deviceId,
+    String? deviceName,
+    String? platform,
+    String? sharedKey,
+    int? pairedAt,
+    Value<String?> lastAddress = const Value.absent(),
+    Value<int?> lastContactAt = const Value.absent(),
+  }) => Peer(
+    deviceId: deviceId ?? this.deviceId,
+    deviceName: deviceName ?? this.deviceName,
+    platform: platform ?? this.platform,
+    sharedKey: sharedKey ?? this.sharedKey,
+    pairedAt: pairedAt ?? this.pairedAt,
+    lastAddress: lastAddress.present ? lastAddress.value : this.lastAddress,
+    lastContactAt: lastContactAt.present
+        ? lastContactAt.value
+        : this.lastContactAt,
+  );
+  Peer copyWithCompanion(PeersCompanion data) {
+    return Peer(
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      deviceName: data.deviceName.present
+          ? data.deviceName.value
+          : this.deviceName,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      sharedKey: data.sharedKey.present ? data.sharedKey.value : this.sharedKey,
+      pairedAt: data.pairedAt.present ? data.pairedAt.value : this.pairedAt,
+      lastAddress: data.lastAddress.present
+          ? data.lastAddress.value
+          : this.lastAddress,
+      lastContactAt: data.lastContactAt.present
+          ? data.lastContactAt.value
+          : this.lastContactAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Peer(')
+          ..write('deviceId: $deviceId, ')
+          ..write('deviceName: $deviceName, ')
+          ..write('platform: $platform, ')
+          ..write('sharedKey: $sharedKey, ')
+          ..write('pairedAt: $pairedAt, ')
+          ..write('lastAddress: $lastAddress, ')
+          ..write('lastContactAt: $lastContactAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    deviceId,
+    deviceName,
+    platform,
+    sharedKey,
+    pairedAt,
+    lastAddress,
+    lastContactAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Peer &&
+          other.deviceId == this.deviceId &&
+          other.deviceName == this.deviceName &&
+          other.platform == this.platform &&
+          other.sharedKey == this.sharedKey &&
+          other.pairedAt == this.pairedAt &&
+          other.lastAddress == this.lastAddress &&
+          other.lastContactAt == this.lastContactAt);
+}
+
+class PeersCompanion extends UpdateCompanion<Peer> {
+  final Value<String> deviceId;
+  final Value<String> deviceName;
+  final Value<String> platform;
+  final Value<String> sharedKey;
+  final Value<int> pairedAt;
+  final Value<String?> lastAddress;
+  final Value<int?> lastContactAt;
+  final Value<int> rowid;
+  const PeersCompanion({
+    this.deviceId = const Value.absent(),
+    this.deviceName = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.sharedKey = const Value.absent(),
+    this.pairedAt = const Value.absent(),
+    this.lastAddress = const Value.absent(),
+    this.lastContactAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PeersCompanion.insert({
+    required String deviceId,
+    required String deviceName,
+    required String platform,
+    required String sharedKey,
+    required int pairedAt,
+    this.lastAddress = const Value.absent(),
+    this.lastContactAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : deviceId = Value(deviceId),
+       deviceName = Value(deviceName),
+       platform = Value(platform),
+       sharedKey = Value(sharedKey),
+       pairedAt = Value(pairedAt);
+  static Insertable<Peer> custom({
+    Expression<String>? deviceId,
+    Expression<String>? deviceName,
+    Expression<String>? platform,
+    Expression<String>? sharedKey,
+    Expression<int>? pairedAt,
+    Expression<String>? lastAddress,
+    Expression<int>? lastContactAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (deviceId != null) 'device_id': deviceId,
+      if (deviceName != null) 'device_name': deviceName,
+      if (platform != null) 'platform': platform,
+      if (sharedKey != null) 'shared_key': sharedKey,
+      if (pairedAt != null) 'paired_at': pairedAt,
+      if (lastAddress != null) 'last_address': lastAddress,
+      if (lastContactAt != null) 'last_contact_at': lastContactAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PeersCompanion copyWith({
+    Value<String>? deviceId,
+    Value<String>? deviceName,
+    Value<String>? platform,
+    Value<String>? sharedKey,
+    Value<int>? pairedAt,
+    Value<String?>? lastAddress,
+    Value<int?>? lastContactAt,
+    Value<int>? rowid,
+  }) {
+    return PeersCompanion(
+      deviceId: deviceId ?? this.deviceId,
+      deviceName: deviceName ?? this.deviceName,
+      platform: platform ?? this.platform,
+      sharedKey: sharedKey ?? this.sharedKey,
+      pairedAt: pairedAt ?? this.pairedAt,
+      lastAddress: lastAddress ?? this.lastAddress,
+      lastContactAt: lastContactAt ?? this.lastContactAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (deviceName.present) {
+      map['device_name'] = Variable<String>(deviceName.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (sharedKey.present) {
+      map['shared_key'] = Variable<String>(sharedKey.value);
+    }
+    if (pairedAt.present) {
+      map['paired_at'] = Variable<int>(pairedAt.value);
+    }
+    if (lastAddress.present) {
+      map['last_address'] = Variable<String>(lastAddress.value);
+    }
+    if (lastContactAt.present) {
+      map['last_contact_at'] = Variable<int>(lastContactAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeersCompanion(')
+          ..write('deviceId: $deviceId, ')
+          ..write('deviceName: $deviceName, ')
+          ..write('platform: $platform, ')
+          ..write('sharedKey: $sharedKey, ')
+          ..write('pairedAt: $pairedAt, ')
+          ..write('lastAddress: $lastAddress, ')
+          ..write('lastContactAt: $lastContactAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2614,6 +3348,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PlayEventsTable playEvents = $PlayEventsTable(this);
   late final $TrackOverridesTable trackOverrides = $TrackOverridesTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $LocalDeviceTable localDevice = $LocalDeviceTable(this);
+  late final $PeersTable peers = $PeersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2627,6 +3363,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     playEvents,
     trackOverrides,
     appSettings,
+    localDevice,
+    peers,
   ];
 }
 
@@ -4084,6 +4822,401 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSetting,
       PrefetchHooks Function()
     >;
+typedef $$LocalDeviceTableCreateCompanionBuilder =
+    LocalDeviceCompanion Function({
+      Value<int> id,
+      required String deviceId,
+      required String deviceName,
+    });
+typedef $$LocalDeviceTableUpdateCompanionBuilder =
+    LocalDeviceCompanion Function({
+      Value<int> id,
+      Value<String> deviceId,
+      Value<String> deviceName,
+    });
+
+class $$LocalDeviceTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalDeviceTable> {
+  $$LocalDeviceTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalDeviceTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalDeviceTable> {
+  $$LocalDeviceTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalDeviceTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalDeviceTable> {
+  $$LocalDeviceTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => column,
+  );
+}
+
+class $$LocalDeviceTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalDeviceTable,
+          LocalDeviceData,
+          $$LocalDeviceTableFilterComposer,
+          $$LocalDeviceTableOrderingComposer,
+          $$LocalDeviceTableAnnotationComposer,
+          $$LocalDeviceTableCreateCompanionBuilder,
+          $$LocalDeviceTableUpdateCompanionBuilder,
+          (
+            LocalDeviceData,
+            BaseReferences<_$AppDatabase, $LocalDeviceTable, LocalDeviceData>,
+          ),
+          LocalDeviceData,
+          PrefetchHooks Function()
+        > {
+  $$LocalDeviceTableTableManager(_$AppDatabase db, $LocalDeviceTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalDeviceTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalDeviceTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalDeviceTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> deviceName = const Value.absent(),
+              }) => LocalDeviceCompanion(
+                id: id,
+                deviceId: deviceId,
+                deviceName: deviceName,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String deviceId,
+                required String deviceName,
+              }) => LocalDeviceCompanion.insert(
+                id: id,
+                deviceId: deviceId,
+                deviceName: deviceName,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalDeviceTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalDeviceTable,
+      LocalDeviceData,
+      $$LocalDeviceTableFilterComposer,
+      $$LocalDeviceTableOrderingComposer,
+      $$LocalDeviceTableAnnotationComposer,
+      $$LocalDeviceTableCreateCompanionBuilder,
+      $$LocalDeviceTableUpdateCompanionBuilder,
+      (
+        LocalDeviceData,
+        BaseReferences<_$AppDatabase, $LocalDeviceTable, LocalDeviceData>,
+      ),
+      LocalDeviceData,
+      PrefetchHooks Function()
+    >;
+typedef $$PeersTableCreateCompanionBuilder =
+    PeersCompanion Function({
+      required String deviceId,
+      required String deviceName,
+      required String platform,
+      required String sharedKey,
+      required int pairedAt,
+      Value<String?> lastAddress,
+      Value<int?> lastContactAt,
+      Value<int> rowid,
+    });
+typedef $$PeersTableUpdateCompanionBuilder =
+    PeersCompanion Function({
+      Value<String> deviceId,
+      Value<String> deviceName,
+      Value<String> platform,
+      Value<String> sharedKey,
+      Value<int> pairedAt,
+      Value<String?> lastAddress,
+      Value<int?> lastContactAt,
+      Value<int> rowid,
+    });
+
+class $$PeersTableFilterComposer extends Composer<_$AppDatabase, $PeersTable> {
+  $$PeersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sharedKey => $composableBuilder(
+    column: $table.sharedKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pairedAt => $composableBuilder(
+    column: $table.pairedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastAddress => $composableBuilder(
+    column: $table.lastAddress,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastContactAt => $composableBuilder(
+    column: $table.lastContactAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PeersTableOrderingComposer
+    extends Composer<_$AppDatabase, $PeersTable> {
+  $$PeersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sharedKey => $composableBuilder(
+    column: $table.sharedKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pairedAt => $composableBuilder(
+    column: $table.pairedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastAddress => $composableBuilder(
+    column: $table.lastAddress,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastContactAt => $composableBuilder(
+    column: $table.lastContactAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PeersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PeersTable> {
+  $$PeersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get sharedKey =>
+      $composableBuilder(column: $table.sharedKey, builder: (column) => column);
+
+  GeneratedColumn<int> get pairedAt =>
+      $composableBuilder(column: $table.pairedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get lastAddress => $composableBuilder(
+    column: $table.lastAddress,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastContactAt => $composableBuilder(
+    column: $table.lastContactAt,
+    builder: (column) => column,
+  );
+}
+
+class $$PeersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PeersTable,
+          Peer,
+          $$PeersTableFilterComposer,
+          $$PeersTableOrderingComposer,
+          $$PeersTableAnnotationComposer,
+          $$PeersTableCreateCompanionBuilder,
+          $$PeersTableUpdateCompanionBuilder,
+          (Peer, BaseReferences<_$AppDatabase, $PeersTable, Peer>),
+          Peer,
+          PrefetchHooks Function()
+        > {
+  $$PeersTableTableManager(_$AppDatabase db, $PeersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PeersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PeersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PeersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> deviceId = const Value.absent(),
+                Value<String> deviceName = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> sharedKey = const Value.absent(),
+                Value<int> pairedAt = const Value.absent(),
+                Value<String?> lastAddress = const Value.absent(),
+                Value<int?> lastContactAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PeersCompanion(
+                deviceId: deviceId,
+                deviceName: deviceName,
+                platform: platform,
+                sharedKey: sharedKey,
+                pairedAt: pairedAt,
+                lastAddress: lastAddress,
+                lastContactAt: lastContactAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String deviceId,
+                required String deviceName,
+                required String platform,
+                required String sharedKey,
+                required int pairedAt,
+                Value<String?> lastAddress = const Value.absent(),
+                Value<int?> lastContactAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PeersCompanion.insert(
+                deviceId: deviceId,
+                deviceName: deviceName,
+                platform: platform,
+                sharedKey: sharedKey,
+                pairedAt: pairedAt,
+                lastAddress: lastAddress,
+                lastContactAt: lastContactAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PeersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PeersTable,
+      Peer,
+      $$PeersTableFilterComposer,
+      $$PeersTableOrderingComposer,
+      $$PeersTableAnnotationComposer,
+      $$PeersTableCreateCompanionBuilder,
+      $$PeersTableUpdateCompanionBuilder,
+      (Peer, BaseReferences<_$AppDatabase, $PeersTable, Peer>),
+      Peer,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4104,4 +5237,8 @@ class $AppDatabaseManager {
       $$TrackOverridesTableTableManager(_db, _db.trackOverrides);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$LocalDeviceTableTableManager get localDevice =>
+      $$LocalDeviceTableTableManager(_db, _db.localDevice);
+  $$PeersTableTableManager get peers =>
+      $$PeersTableTableManager(_db, _db.peers);
 }

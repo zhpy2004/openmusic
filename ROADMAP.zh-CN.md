@@ -53,4 +53,6 @@ iOS / macOS / Linux、均衡器、Chromecast / Android Auto、Subsonic 客户端
 
 ## 之后可能做
 
-大致按需求热度:逐字歌词 + 桌面歌词 → Subsonic 客户端模式 → 均衡器 → Android Auto。
+**Android 自选音乐文件夹**(目前固定扫描系统音乐目录 `/storage/emulated/0/Music`,歌放在别处的用户无法建库;需接入 SAF 目录选择)。
+
+其余大致按需求热度:逐字歌词 + 桌面歌词 → Subsonic 客户端模式 → 均衡器 → Android Auto。
