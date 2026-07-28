@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +13,18 @@ import '../ui/pair_request_prompt.dart';
 import '../ui/playlists_screen.dart';
 import '../ui/settings_screen.dart';
 import '../ui/setup_wizard.dart';
+
+/// Windows 上的界面字体。
+///
+/// **为什么要钉死**:Windows 的默认 UI 字体(Segoe UI)不含中日韩字形,系统会
+/// **逐字**回退,同一个词里不同的字可能落到不同字体上,各自字重实现不同 →
+/// 「解除配对」的「对」肉眼可见比「解除配」细,中英混排时更明显。指定一个
+/// 中英全覆盖的字体族,整句字重才一致。取不到该字体时 Flutter 自动退回默认,
+/// 不会崩。非 Windows 平台(Android)系统字体本就覆盖中文,保持默认。
+String? get _uiFontFamily => Platform.isWindows ? 'Microsoft YaHei UI' : null;
+
+List<String>? get _uiFontFallback =>
+    Platform.isWindows ? const ['Microsoft YaHei', 'Segoe UI'] : null;
 
 class OpenMusicApp extends ConsumerStatefulWidget {
   const OpenMusicApp({super.key});
@@ -215,11 +229,18 @@ class _OpenMusicAppState extends ConsumerState<OpenMusicApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: localeFromPreference(localePref),
-      theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+      theme: ThemeData(
+        colorSchemeSeed: Colors.teal,
+        useMaterial3: true,
+        fontFamily: _uiFontFamily,
+        fontFamilyFallback: _uiFontFallback,
+      ),
       darkTheme: ThemeData(
         colorSchemeSeed: Colors.teal,
         brightness: Brightness.dark,
         useMaterial3: true,
+        fontFamily: _uiFontFamily,
+        fontFamilyFallback: _uiFontFallback,
       ),
       // roots 未加载完前给中性 loading,避免向导/曲库任一方闪一帧。
       home: !_decided

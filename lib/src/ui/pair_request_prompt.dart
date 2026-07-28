@@ -30,11 +30,10 @@ class PairRequestPrompt extends StatelessWidget {
           Text(
             l10n.syncPairRequestFrom(request.deviceName),
             textAlign: TextAlign.center,
-            // 明确用常规字重:Windows 上中文由回退字体渲染,若这里用 w500
-            // (titleMedium 默认),拉丁文部分会明显比中文粗,同一行字重不一。
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w400),
+            // 用 bodyLarge(w400)而非 titleMedium(w500):设备名多是拉丁文、
+            // 其余是中文,非常规字重更容易暴露字体回退差异。字体族本身已在
+            // app.dart 为 Windows 钉死,这里只是不再自找麻烦。
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 12),
           Text(l10n.syncCompareCodes, textAlign: TextAlign.center),
