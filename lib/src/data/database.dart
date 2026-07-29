@@ -181,12 +181,21 @@ class AppDatabase extends _$AppDatabase {
       }
       // v5→v6:M3-B 的软删列 + play_events 去重索引。
       if (from < 6) {
-        await m.addColumn(playlists, playlists.deleted);
-        await m.addColumn(playlistItems, playlistItems.updatedAt);
-        await m.addColumn(playlistItems, playlistItems.deleted);
-        await m.addColumn(favorites, favorites.updatedAt);
-        await m.addColumn(favorites, favorites.deleted);
-        await m.addColumn(trackOverrides, trackOverrides.deleted);
+        // 只给**真正的旧结构**补列:上面 from<2 / from<3 的块用的是 drift 的
+        // m.createTable,它永远建**当前**(v6)形状 —— 那些表已经自带软删列了,
+        // 再 addColumn 会撞 duplicate column name,整个迁移中断、库打不开。
+        // 受影响的是从 v1(playlists 等四表)与 v2(track_overrides)升上来的库
+        // ——这两个版本(v0.1.0-m1、v0.2.0-m2a)已公开发布,必须兼容。
+        if (from >= 2) {
+          await m.addColumn(playlists, playlists.deleted);
+          await m.addColumn(playlistItems, playlistItems.updatedAt);
+          await m.addColumn(playlistItems, playlistItems.deleted);
+          await m.addColumn(favorites, favorites.updatedAt);
+          await m.addColumn(favorites, favorites.deleted);
+        }
+        if (from >= 3) {
+          await m.addColumn(trackOverrides, trackOverrides.deleted);
+        }
 
         // 回填 updatedAt(不能留 0:它要参与 LWW 比较,0 会永远输)。
         // favorites 用自己的 addedAt(就是这行的产生时刻);

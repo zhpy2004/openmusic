@@ -29,6 +29,21 @@ void main() {
     await db.customStatement('PRAGMA user_version = 5');
   }
 
+  /// 走一遍最基本的读写链路,证明"补列"(v3/v4/v5→v6)与"建表"(v1/v2→v6)
+  /// 两条迁移路径产出的结构是等价的、真能用——不只是"打得开"。
+  Future<void> assertBasicFlowWorks(AppDatabase db) async {
+    expect(db.schemaVersion, 6);
+
+    final uuid = await db.createPlaylist('新歌单');
+    await db.addToPlaylist(uuid, 'fp-a');
+    await db.removeFromPlaylist(uuid, 'fp-a');
+    expect(await db.watchPlaylistItems(uuid).first, isEmpty);
+
+    await db.toggleFavorite('fp-a'); // 收藏
+    await db.toggleFavorite('fp-a'); // 取消
+    expect(await db.isFavorite('fp-a'), isFalse);
+  }
+
   test('v5→v6:加列、回填 updatedAt、去重后建唯一索引,旧数据无损', () async {
     final v5 = AppDatabase(testFileExecutor(file.path));
     // 先用 v6 的 API 造数据,再退化结构
@@ -87,6 +102,69 @@ void main() {
     final after = await db.customSelect('SELECT COUNT(*) c FROM play_events').get();
     expect(after.single.read<int>('c'), 1);
 
+    await db.close();
+  });
+
+  test('v2→v6 跳级升级:track_overrides 走"建表"、其余四表走"补列",两条路径都不撞列', () async {
+    final v2 = AppDatabase(testFileExecutor(file.path));
+    await v2.customStatement(
+      "INSERT INTO tracks (path, fingerprint, title, artist, album, album_artist, "
+      "duration_ms, size_bytes, mtime_ms) "
+      "VALUES ('/m/a.mp3', 'fp-a', '老歌', '歌手', '', '', 0, 1, 1)",
+    );
+    // v5 形状对 playlists/playlist_items/favorites/track_overrides 这四张表
+    // 而言就等于 v2 形状——v2 到 v5 之间没人动过它们。
+    await degradeSchemaToV5(v2);
+    // track_overrides 是 v2→v3(M2-B)才引入的,真正的 v2 库里压根没有这张表;
+    // app_settings/local_device/peers 更晚,也一并去掉,才是完整的 v2 形态。
+    await v2.customStatement('DROP TABLE track_overrides');
+    await v2.customStatement('DROP TABLE IF EXISTS app_settings');
+    await v2.customStatement('DROP TABLE IF EXISTS local_device');
+    await v2.customStatement('DROP TABLE IF EXISTS peers');
+    await v2.customStatement('PRAGMA user_version = 2');
+    await v2.close();
+
+    // 重新打开 → 走 onUpgrade(2 → 6):track_overrides 由 from<3 的
+    // m.createTable 建出(自带 v6 形状),其余四表由 from<6 里 from>=2 的
+    // addColumn 补列——如果两条路径有一条撞了 duplicate column,这里就会崩。
+    final db = AppDatabase(testFileExecutor(file.path));
+
+    final tracks = await db.watchTracks('').first;
+    expect(tracks.single.title, '老歌'); // v1 时代就有的数据无损
+
+    await assertBasicFlowWorks(db);
+    await db.close();
+  });
+
+  test('v1→v6 跳级升级:四张 M2-A 表全部由 onCreate 时代的 createTable 补出,不撞列', () async {
+    final v1 = AppDatabase(testFileExecutor(file.path));
+    await v1.customStatement(
+      "INSERT INTO tracks (path, fingerprint, title, artist, album, album_artist, "
+      "duration_ms, size_bytes, mtime_ms) "
+      "VALUES ('/m/a.mp3', 'fp-a', '老歌', '歌手', '', '', 0, 1, 1)",
+    );
+    // v1 只有 tracks/scan_roots,其余表(M2-A 起才引入)全部去掉。
+    await v1.customStatement('DROP INDEX IF EXISTS idx_play_events_natural_key');
+    await v1.customStatement('DROP TABLE playlists');
+    await v1.customStatement('DROP TABLE playlist_items');
+    await v1.customStatement('DROP TABLE favorites');
+    await v1.customStatement('DROP TABLE play_events');
+    await v1.customStatement('DROP TABLE track_overrides');
+    await v1.customStatement('DROP TABLE IF EXISTS app_settings');
+    await v1.customStatement('DROP TABLE IF EXISTS local_device');
+    await v1.customStatement('DROP TABLE IF EXISTS peers');
+    await v1.customStatement('PRAGMA user_version = 1');
+    await v1.close();
+
+    // 重新打开 → 走 onUpgrade(1 → 6):四张表全部由 from<2/from<3 的
+    // m.createTable 建出(自带 v6 形状),from<6 里的 addColumn 因
+    // from>=2/from>=3 都为假而不会执行——不这样处理就会撞 duplicate column。
+    final db = AppDatabase(testFileExecutor(file.path));
+
+    final tracks = await db.watchTracks('').first;
+    expect(tracks.single.title, '老歌'); // v1 时代就有的数据无损
+
+    await assertBasicFlowWorks(db);
     await db.close();
   });
 }
