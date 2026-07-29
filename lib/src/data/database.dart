@@ -30,6 +30,8 @@ class Playlists extends Table {
   TextColumn get name => text()();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
+  /// 软删墓碑:删除不真删行,否则删除无法跨设备传播(会被对端"复活")。
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {uuid};
@@ -39,6 +41,9 @@ class PlaylistItems extends Table {
   TextColumn get playlistUuid => text()();
   TextColumn get trackFp => text()(); // 内容指纹引用,非 tracks.id
   IntColumn get position => integer()();
+  /// 本行自己的最后改动时刻 —— 成员是**按行 LWW** 合并的,不跟歌单整体走。
+  IntColumn get updatedAt => integer().withDefault(const Constant(0))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override
   List<Set<Column>> get uniqueKeys => [
@@ -48,7 +53,9 @@ class PlaylistItems extends Table {
 
 class Favorites extends Table {
   TextColumn get trackFp => text()();
-  IntColumn get addedAt => integer()();
+  IntColumn get addedAt => integer()(); // 保留:展示排序用
+  IntColumn get updatedAt => integer().withDefault(const Constant(0))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {trackFp};
@@ -70,6 +77,7 @@ class TrackOverrides extends Table {
   TextColumn get artist => text().nullable()();
   TextColumn get album => text().nullable()();
   IntColumn get updatedAt => integer()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {trackFp};
@@ -139,11 +147,17 @@ class AppDatabase extends _$AppDatabase {
   final _rnd = Random();
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) => m.createAll(),
+    onCreate: (m) async {
+      await m.createAll();
+      await customStatement(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_play_events_natural_key '
+        'ON play_events (track_fp, played_at, event_type)',
+      );
+    },
     onUpgrade: (m, from, to) async {
       // v1→v2:只新建 M2-A 的四张表,现有 tracks/scan_roots 原样保留。
       if (from < 2) {
@@ -164,6 +178,45 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         await m.createTable(localDevice);
         await m.createTable(peers);
+      }
+      // v5→v6:M3-B 的软删列 + play_events 去重索引。
+      if (from < 6) {
+        await m.addColumn(playlists, playlists.deleted);
+        await m.addColumn(playlistItems, playlistItems.updatedAt);
+        await m.addColumn(playlistItems, playlistItems.deleted);
+        await m.addColumn(favorites, favorites.updatedAt);
+        await m.addColumn(favorites, favorites.deleted);
+        await m.addColumn(trackOverrides, trackOverrides.deleted);
+
+        // 回填 updatedAt(不能留 0:它要参与 LWW 比较,0 会永远输)。
+        // favorites 用自己的 addedAt(就是这行的产生时刻);
+        // playlist_items 没有历史时间,用所属歌单的 updatedAt —— 比拍一个
+        // 迁移时刻更接近真相(歌单最后改动时间即其成员最后改动时间)。
+        await customStatement(
+          'UPDATE favorites SET updated_at = added_at WHERE updated_at = 0',
+        );
+        await customStatement(
+          'UPDATE playlist_items SET updated_at = ('
+          '  SELECT updated_at FROM playlists WHERE playlists.uuid = playlist_items.playlist_uuid'
+          ') WHERE updated_at = 0',
+        );
+        // 歌单被删过而成员还在的孤儿行:上面子查询返回 NULL,兜底成迁移时刻。
+        await customStatement(
+          'UPDATE playlist_items SET updated_at = ${DateTime.now().millisecondsSinceEpoch} '
+          'WHERE updated_at IS NULL OR updated_at = 0',
+        );
+
+        // **先去重再建唯一索引**:已有同键重复行会让 CREATE UNIQUE INDEX 直接失败、
+        // 迁移中断。保留每组 rowid 最小的一条。
+        await customStatement(
+          'DELETE FROM play_events WHERE id NOT IN ('
+          '  SELECT MIN(id) FROM play_events GROUP BY track_fp, played_at, event_type'
+          ')',
+        );
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_play_events_natural_key '
+          'ON play_events (track_fp, played_at, event_type)',
+        );
       }
     },
   );
@@ -409,13 +462,24 @@ class AppDatabase extends _$AppDatabase {
           .watch()
           .map((rows) => rows.map((r) => r.trackFp).toList());
 
-  /// 追加式播放日志(只增不改)。M3 同步取并集,永不冲突。
-  Future<void> logPlayEvent(String fp) => into(playEvents).insert(
+  /// 带显式时间戳的播放记录写入。**`insertOrIgnore` + 自然键唯一索引 = 幂等** ——
+  /// 同步取并集时反复写同一条也不会累积重复行。
+  Future<void> logPlayEventAt(
+    String fp,
+    int playedAtMs, {
+    String eventType = 'played',
+  }) => into(playEvents).insert(
     PlayEventsCompanion.insert(
       trackFp: fp,
-      playedAt: DateTime.now().millisecondsSinceEpoch,
+      playedAt: playedAtMs,
+      eventType: Value(eventType),
     ),
+    mode: InsertMode.insertOrIgnore,
   );
+
+  /// 追加式播放日志(只增不改)。M3 同步取并集,永不冲突。
+  Future<void> logPlayEvent(String fp) =>
+      logPlayEventAt(fp, DateTime.now().millisecondsSinceEpoch);
 
   /// 供 UI 红心状态实时反映(单曲)。
   Stream<bool> watchIsFavorite(String fp) => (select(
