@@ -353,16 +353,21 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
-  Future<void> deletePlaylist(String uuid) => transaction(() async {
-    await (delete(
-      playlistItems,
-    )..where((i) => i.playlistUuid.equals(uuid))).go();
-    await (delete(playlists)..where((p) => p.uuid.equals(uuid))).go();
-  });
+  // 软删而非真删:否则删除无法跨设备传播(对端会拿它那份旧数据把已删的歌单
+  // "复活")。成员不跟着软删:歌单行本身就是墓碑,成员留原样——若对端稍后
+  // "复活"了这个歌单(它那边 updatedAt 更新),成员还在,不用重建。
+  Future<void> deletePlaylist(String uuid) =>
+      (update(playlists)..where((p) => p.uuid.equals(uuid))).write(
+        PlaylistsCompanion(
+          deleted: const Value(true),
+          updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+        ),
+      );
 
-  Stream<List<Playlist>> watchPlaylists() => (select(
-    playlists,
-  )..orderBy([(p) => OrderingTerm.desc(p.updatedAt)])).watch();
+  Stream<List<Playlist>> watchPlaylists() => (select(playlists)
+        ..where((p) => p.deleted.equals(false))
+        ..orderBy([(p) => OrderingTerm.desc(p.updatedAt)]))
+      .watch();
 
   Future<void> _bumpPlaylist(String uuid) =>
       (update(playlists)..where((p) => p.uuid.equals(uuid))).write(
@@ -372,38 +377,64 @@ class AppDatabase extends _$AppDatabase {
       );
 
   Future<void> addToPlaylist(String uuid, String fp) => transaction(() async {
-    // 重复添加 = 完全 no-op:不插入、不 bump updatedAt。否则重复 add 会让
-    // 歌单假装"被改过"跳到列表顶,且 M3 LWW 会拿一个未变化的歌单覆盖对端真实改动。
+    final now = DateTime.now().millisecondsSinceEpoch;
     final exists =
         await (select(
               playlistItems,
             )..where((i) => i.playlistUuid.equals(uuid) & i.trackFp.equals(fp)))
             .getSingleOrNull();
-    if (exists != null) return; // 已在歌单:no-op
+    // 已在歌单且未删 = 完全 no-op:不写、不 bump。否则重复 add 会让歌单假装
+    // "被改过"跳到列表顶,且 LWW 会拿一个未变化的歌单覆盖对端真实改动。
+    if (exists != null && !exists.deleted) return;
+
+    // max 要把已删行也算进去:复活时若沿用旧 position 可能与现存行撞号。
     final maxPos =
         await (selectOnly(playlistItems)
               ..addColumns([playlistItems.position.max()])
               ..where(playlistItems.playlistUuid.equals(uuid)))
             .map((r) => r.read(playlistItems.position.max()))
             .getSingleOrNull();
-    await into(playlistItems).insert(
-      PlaylistItemsCompanion.insert(
-        playlistUuid: uuid,
-        trackFp: fp,
-        position: (maxPos ?? -1) + 1,
-      ),
-    );
+    final nextPos = (maxPos ?? -1) + 1;
+
+    if (exists == null) {
+      await into(playlistItems).insert(
+        PlaylistItemsCompanion.insert(
+          playlistUuid: uuid,
+          trackFp: fp,
+          position: nextPos,
+          updatedAt: Value(now),
+        ),
+      );
+    } else {
+      // 复活同一行(不是插新行),否则唯一约束会撞,且会留下两份历史。
+      await (update(playlistItems)..where(
+            (i) => i.playlistUuid.equals(uuid) & i.trackFp.equals(fp),
+          ))
+          .write(
+            PlaylistItemsCompanion(
+              deleted: const Value(false),
+              position: Value(nextPos),
+              updatedAt: Value(now),
+            ),
+          );
+    }
     await _bumpPlaylist(uuid);
   });
 
-  Future<void> removeFromPlaylist(String uuid, String fp) => transaction(
-    () async {
-      await (delete(
-        playlistItems,
-      )..where((i) => i.playlistUuid.equals(uuid) & i.trackFp.equals(fp))).go();
-      await _bumpPlaylist(uuid);
-    },
-  );
+  // 软删而非真删:同上,否则移除无法跨设备传播。
+  Future<void> removeFromPlaylist(String uuid, String fp) =>
+      transaction(() async {
+        await (update(playlistItems)..where(
+              (i) => i.playlistUuid.equals(uuid) & i.trackFp.equals(fp),
+            ))
+            .write(
+              PlaylistItemsCompanion(
+                deleted: const Value(true),
+                updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+              ),
+            );
+        await _bumpPlaylist(uuid);
+      });
 
   /// 重排:[fpsInOrder] 必须是该歌单**当前全部成员**的完整期望顺序。
   /// 传子集会让未列出的项保留旧 position → 可能出现重复 position(排序不稳:
@@ -411,13 +442,21 @@ class AppDatabase extends _$AppDatabase {
   /// UI(ReorderableListView)总传全量顺序,满足此前提。
   Future<void> reorderPlaylist(String uuid, List<String> fpsInOrder) =>
       transaction(() async {
+        final now = DateTime.now().millisecondsSinceEpoch;
         for (var i = 0; i < fpsInOrder.length; i++) {
+          // 必须 bump 每个成员的 updatedAt:成员是按行 LWW 合并的,行没变化
+          // 对端就不会采纳新 position,重排等于同步不出去。
           await (update(playlistItems)..where(
                 (it) =>
                     it.playlistUuid.equals(uuid) &
                     it.trackFp.equals(fpsInOrder[i]),
               ))
-              .write(PlaylistItemsCompanion(position: Value(i)));
+              .write(
+                PlaylistItemsCompanion(
+                  position: Value(i),
+                  updatedAt: Value(now),
+                ),
+              );
         }
         await _bumpPlaylist(uuid);
       });
@@ -430,7 +469,10 @@ class AppDatabase extends _$AppDatabase {
               tracks.fingerprint.equalsExp(playlistItems.trackFp),
             ),
           ])
-          ..where(playlistItems.playlistUuid.equals(uuid))
+          ..where(
+            playlistItems.playlistUuid.equals(uuid) &
+                playlistItems.deleted.equals(false),
+          )
           ..orderBy([OrderingTerm.asc(playlistItems.position)]);
     return q.watch().map(
       (rows) => rows
@@ -446,30 +488,44 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<bool> isFavorite(String fp) async =>
-      await (select(
-        favorites,
-      )..where((f) => f.trackFp.equals(fp))).getSingleOrNull() !=
+      await (select(favorites)..where(
+            (f) => f.trackFp.equals(fp) & f.deleted.equals(false),
+          ))
+          .getSingleOrNull() !=
       null;
 
   // check-then-act 必须在事务内:trackFp 是主键,双击红心时两次 toggle 若都读到
-  // "未收藏"会双 insert 撞主键崩(与 addToPlaylist 同款防护)。
+  // "未收藏"会双 insert 撞主键崩。软删而非真删:否则取消收藏无法跨设备传播。
   Future<void> toggleFavorite(String fp) => transaction(() async {
-    if (await isFavorite(fp)) {
-      await (delete(favorites)..where((f) => f.trackFp.equals(fp))).go();
-    } else {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final row = await (select(
+      favorites,
+    )..where((f) => f.trackFp.equals(fp))).getSingleOrNull();
+    if (row == null) {
       await into(favorites).insert(
         FavoritesCompanion.insert(
           trackFp: fp,
-          addedAt: DateTime.now().millisecondsSinceEpoch,
+          addedAt: now,
+          updatedAt: Value(now),
         ),
       );
+      return;
     }
+    await (update(favorites)..where((f) => f.trackFp.equals(fp))).write(
+      FavoritesCompanion(
+        deleted: Value(!row.deleted),
+        // 重新收藏时刷新 addedAt,"我喜欢的"按时间倒序才符合直觉
+        addedAt: row.deleted ? Value(now) : const Value.absent(),
+        updatedAt: Value(now),
+      ),
+    );
   });
 
-  Stream<List<String>> watchFavorites() =>
-      (select(favorites)..orderBy([(f) => OrderingTerm.desc(f.addedAt)]))
-          .watch()
-          .map((rows) => rows.map((r) => r.trackFp).toList());
+  Stream<List<String>> watchFavorites() => (select(favorites)
+        ..where((f) => f.deleted.equals(false))
+        ..orderBy([(f) => OrderingTerm.desc(f.addedAt)]))
+      .watch()
+      .map((rows) => rows.map((r) => r.trackFp).toList());
 
   /// 带显式时间戳的播放记录写入。**`insertOrIgnore` + 自然键唯一索引 = 幂等** ——
   /// 同步取并集时反复写同一条也不会累积重复行。
@@ -491,9 +547,12 @@ class AppDatabase extends _$AppDatabase {
       logPlayEventAt(fp, DateTime.now().millisecondsSinceEpoch);
 
   /// 供 UI 红心状态实时反映(单曲)。
-  Stream<bool> watchIsFavorite(String fp) => (select(
-    favorites,
-  )..where((f) => f.trackFp.equals(fp))).watch().map((rows) => rows.isNotEmpty);
+  Stream<bool> watchIsFavorite(String fp) =>
+      (select(favorites)..where(
+            (f) => f.trackFp.equals(fp) & f.deleted.equals(false),
+          ))
+          .watch()
+          .map((rows) => rows.isNotEmpty);
 
   // null 字段必须用 Value.absent()("不改这列");写成 Value(o.title ?? '') 会把列清空。
   Future<void> _materializeOverride(TrackOverride o) =>
@@ -522,6 +581,9 @@ class AppDatabase extends _$AppDatabase {
         artist: artist == null ? const Value.absent() : Value(artist),
         album: album == null ? const Value.absent() : Value(album),
         updatedAt: DateTime.now().millisecondsSinceEpoch,
+        // 显式复位:改完修正就不该还是删除态(否则会一直被 getTrackOverride
+        // 过滤掉,重新设置的修正等于白设)。
+        deleted: const Value(false),
       ),
     );
     final o = await (select(
@@ -530,13 +592,21 @@ class AppDatabase extends _$AppDatabase {
     await _materializeOverride(o);
   });
 
-  Future<TrackOverride?> getTrackOverride(String fp) => (select(
-    trackOverrides,
-  )..where((t) => t.trackFp.equals(fp))).getSingleOrNull();
+  Future<TrackOverride?> getTrackOverride(String fp) =>
+      (select(trackOverrides)..where(
+            (t) => t.trackFp.equals(fp) & t.deleted.equals(false),
+          ))
+          .getSingleOrNull();
 
   /// 撤销刮削的文本部分。调用侧随后用 applyFileTags 把文件原始标签写回 tracks。
+  /// **软删而非真删**:否则这次撤销无法跨设备传播,同步时会被对端旧数据复活。
   Future<void> clearTrackOverride(String fp) =>
-      (delete(trackOverrides)..where((t) => t.trackFp.equals(fp))).go();
+      (update(trackOverrides)..where((t) => t.trackFp.equals(fp))).write(
+        TrackOverridesCompanion(
+          deleted: const Value(true),
+          updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+        ),
+      );
 
   /// 把从文件重新读到的原始标签写回 tracks(撤销覆盖后恢复显示)。
   Future<void> applyFileTags(
@@ -557,7 +627,9 @@ class AppDatabase extends _$AppDatabase {
   /// 用 batch:逐条 update 会让每个活跃 watchTracks 流每条重查一次(表级失效),
   /// 与 batchUpsertTracks 同理;batch 亦是单事务,避免中途崩溃只叠加一半。
   Future<void> reapplyAllOverrides() async {
-    final all = await select(trackOverrides).get();
+    final all = await (select(
+      trackOverrides,
+    )..where((t) => t.deleted.equals(false))).get();
     await batch((b) {
       for (final o in all) {
         b.update(
