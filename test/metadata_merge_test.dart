@@ -274,6 +274,64 @@ void main() {
       final second = mergeMetadata(local: merged, remote: b);
       expect(second.changeCount, 0);
     });
+
+    // 两轮收敛:A、B 在同一个歌单里各自独有新增两个成员,四行 updatedAt
+    // 完全相等(模拟同一秒内两端各自操作,正是平局规则的触发条件)。
+    //
+    // 实测行为(先跑出来再断言,不是先验推断):
+    //   round1 onA = {x:0, y:1, z:2, w:3}   round1 onB = {z:0, w:1, x:2, y:3}
+    // round 1 之后**没有出现同一设备内的重复 position**——x/y 与 z/w 是四个
+    // 不同的键(playlistUuid+trackFp),彼此从不参与 LWW 比较,只是各自被追加
+    // 到"对端不知道的那一侧"的本地末尾。真正的问题是:A 和 B 对同一组四个
+    // 成员算出了**不同**的 position 分配(A 说 x=0,B 说 x=2)——是分歧,不是
+    // 撞号。
+    //
+    //   round2 onA = {x:2, y:3, z:0, w:1}   round2 onB = {z:0, w:1, x:2, y:3}
+    // 第二轮之后两端一致:round 1 结束时四个键在两端都已存在且 updatedAt
+    // 相等(平局),`remoteWinsTie` 的反对称性(见 metadata_merge.dart 的
+    // `remoteWinsTie` 计算)让两边独立选出同一个胜者(deviceId 更大的
+    // device-b),于是 B 全盘保留自己的分配、A 全盘改用 B 的分配,一次收敛。
+    test('两轮收敛:双方各自新增的同秒成员,第二轮后 position 分配一致且无重复', () {
+      final a = snap(
+        'device-a',
+        items: [item('p1', 'fp-x', 0, 100), item('p1', 'fp-y', 1, 100)],
+      );
+      final b = snap(
+        'device-b',
+        items: [item('p1', 'fp-z', 0, 100), item('p1', 'fp-w', 1, 100)],
+      );
+
+      Map<String, int> positions(MetadataSnapshot s) => {
+        for (final i in s.playlistItems) i.trackFp: i.position,
+      };
+      void expectNoDuplicatePositions(MetadataSnapshot s) {
+        final ps = positions(s).values.toList();
+        expect(ps.toSet().length, ps.length, reason: '同一端出现重复 position');
+      }
+
+      final onA1 = applyForTest(a, mergeMetadata(local: a, remote: b));
+      final onB1 = applyForTest(b, mergeMetadata(local: b, remote: a));
+
+      // round 1:各端内部不撞号,但两端彼此还不一致(这正是需要第二轮的原因)。
+      expectNoDuplicatePositions(onA1);
+      expectNoDuplicatePositions(onB1);
+      expect(positions(onA1), {'fp-x': 0, 'fp-y': 1, 'fp-z': 2, 'fp-w': 3});
+      expect(positions(onB1), {'fp-z': 0, 'fp-w': 1, 'fp-x': 2, 'fp-y': 3});
+      expect(positions(onA1), isNot(equals(positions(onB1))));
+
+      final onA2 = applyForTest(onA1, mergeMetadata(local: onA1, remote: onB1));
+      final onB2 = applyForTest(onB1, mergeMetadata(local: onB1, remote: onA1));
+
+      // round 2:两端 position 分配完全一致,且各端内部仍无重复。
+      expectNoDuplicatePositions(onA2);
+      expectNoDuplicatePositions(onB2);
+      expect(positions(onA2), positions(onB2));
+      expect(positions(onA2), {'fp-x': 2, 'fp-y': 3, 'fp-z': 0, 'fp-w': 1});
+
+      // round 3:真收敛,不是还在震荡。
+      final round3 = mergeMetadata(local: onA2, remote: onB2);
+      expect(round3.changeCount, 0);
+    });
   });
 }
 
