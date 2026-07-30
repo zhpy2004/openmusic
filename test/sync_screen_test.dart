@@ -176,4 +176,38 @@ void main() {
     expect(find.textContaining('绑定端口失败'), findsOneWidget);
     expect(find.text('重试'), findsOneWidget);
   });
+
+  testWidgets('已配对且在线的设备有「同步」按钮,离线则禁用', (tester) async {
+    await db.upsertPeer(
+      deviceId: 'known',
+      deviceName: '卧室平板',
+      platform: 'android',
+      sharedKey: 'k',
+    );
+    controller.online = const [
+      DiscoveredPeer(
+        deviceId: 'known',
+        deviceName: '卧室平板',
+        platform: 'android',
+        protocolVersion: 1,
+        address: '10.0.0.2:1111',
+      ),
+    ];
+    await pumpScreen(tester);
+    await tester.pump();
+
+    final online = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, '同步'),
+    );
+    expect(online.onPressed, isNotNull);
+
+    controller.online = const [];
+    controller.notifyListeners();
+    await tester.pump();
+
+    final offline = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, '同步'),
+    );
+    expect(offline.onPressed, isNull); // 离线置灰
+  });
 }

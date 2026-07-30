@@ -377,6 +377,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncTestConnection => '测试连接';
 
   @override
+  String get syncNow => '同步';
+
+  @override
+  String syncSummary(int playlists, int favorites, int plays) {
+    return '歌单 +$playlists · 收藏 +$favorites · 播放记录 +$plays';
+  }
+
+  @override
+  String get syncAlreadyUpToDate => '已是最新';
+
+  @override
+  String get syncPeerTooOld => '对方版本不支持同步,请升级 openmusic';
+
+  @override
   String syncPairingWith(String device) {
     return '与 $device 配对';
   }
