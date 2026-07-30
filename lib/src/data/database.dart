@@ -2,6 +2,9 @@ import 'dart:math';
 
 import 'package:drift/drift.dart';
 
+import '../sync/metadata_merge.dart';
+import '../sync/sync_payload.dart';
+
 part 'database.g.dart';
 
 class Tracks extends Table {
@@ -717,4 +720,175 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deletePeer(String deviceId) =>
       (delete(peers)..where((p) => p.deviceId.equals(deviceId))).go();
+
+  /// 读出可同步的全量元数据快照。
+  ///
+  /// **必须包含已删行**:墓碑是删除得以跨设备传播的唯一载体,过滤掉就等于
+  /// 告诉对端"我这儿从来没有过这一项",下一轮它又会被当新增推回来。
+  Future<MetadataSnapshot> readSyncSnapshot(String deviceId) async {
+    final playlistRows = await select(playlists).get();
+    final itemRows = await select(playlistItems).get();
+    final favoriteRows = await select(favorites).get();
+    final overrideRows = await select(trackOverrides).get();
+    final eventRows = await select(playEvents).get();
+
+    return MetadataSnapshot(
+      deviceId: deviceId,
+      playlists: [
+        for (final p in playlistRows)
+          PlaylistRow(
+            uuid: p.uuid,
+            name: p.name,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+            deleted: p.deleted,
+          ),
+      ],
+      playlistItems: [
+        for (final i in itemRows)
+          PlaylistItemRow(
+            playlistUuid: i.playlistUuid,
+            trackFp: i.trackFp,
+            position: i.position,
+            updatedAt: i.updatedAt,
+            deleted: i.deleted,
+          ),
+      ],
+      favorites: [
+        for (final f in favoriteRows)
+          FavoriteRow(
+            trackFp: f.trackFp,
+            addedAt: f.addedAt,
+            updatedAt: f.updatedAt,
+            deleted: f.deleted,
+          ),
+      ],
+      overrides: [
+        for (final o in overrideRows)
+          OverrideRow(
+            trackFp: o.trackFp,
+            title: o.title,
+            artist: o.artist,
+            album: o.album,
+            updatedAt: o.updatedAt,
+            deleted: o.deleted,
+          ),
+      ],
+      playEvents: [
+        for (final e in eventRows)
+          PlayEventRow(
+            trackFp: e.trackFp,
+            playedAt: e.playedAt,
+            eventType: e.eventType,
+          ),
+      ],
+    );
+  }
+
+  /// 把合并结果落库。**单事务** —— 中途失败整体回滚,绝不留半合并状态。
+  Future<void> applySyncChanges(MergeResult result) async {
+    if (result.isEmpty) return;
+    await transaction(() async {
+      await batch((b) {
+        for (final p in result.playlists) {
+          b.insert(
+            playlists,
+            PlaylistsCompanion.insert(
+              uuid: p.uuid,
+              name: p.name,
+              createdAt: p.createdAt,
+              updatedAt: p.updatedAt,
+              deleted: Value(p.deleted),
+            ),
+            onConflict: DoUpdate(
+              (_) => PlaylistsCompanion(
+                name: Value(p.name),
+                updatedAt: Value(p.updatedAt),
+                deleted: Value(p.deleted),
+              ),
+            ),
+          );
+        }
+        for (final i in result.playlistItems) {
+          b.insert(
+            playlistItems,
+            PlaylistItemsCompanion.insert(
+              playlistUuid: i.playlistUuid,
+              trackFp: i.trackFp,
+              position: i.position,
+              updatedAt: Value(i.updatedAt),
+              deleted: Value(i.deleted),
+            ),
+            // playlist_items 的主键是隐式 rowid,冲突目标必须显式写成唯一键,
+            // 否则 upsert 认不出"同一项"而去插新行、撞唯一约束。
+            onConflict: DoUpdate(
+              (_) => PlaylistItemsCompanion(
+                position: Value(i.position),
+                updatedAt: Value(i.updatedAt),
+                deleted: Value(i.deleted),
+              ),
+              target: [playlistItems.playlistUuid, playlistItems.trackFp],
+            ),
+          );
+        }
+        for (final f in result.favorites) {
+          b.insert(
+            favorites,
+            FavoritesCompanion.insert(
+              trackFp: f.trackFp,
+              addedAt: f.addedAt,
+              updatedAt: Value(f.updatedAt),
+              deleted: Value(f.deleted),
+            ),
+            onConflict: DoUpdate(
+              (_) => FavoritesCompanion(
+                addedAt: Value(f.addedAt),
+                updatedAt: Value(f.updatedAt),
+                deleted: Value(f.deleted),
+              ),
+            ),
+          );
+        }
+        for (final o in result.overrides) {
+          b.insert(
+            trackOverrides,
+            TrackOverridesCompanion.insert(
+              trackFp: o.trackFp,
+              title: Value(o.title),
+              artist: Value(o.artist),
+              album: Value(o.album),
+              updatedAt: o.updatedAt,
+              deleted: Value(o.deleted),
+            ),
+            onConflict: DoUpdate(
+              (_) => TrackOverridesCompanion(
+                title: Value(o.title),
+                artist: Value(o.artist),
+                album: Value(o.album),
+                updatedAt: Value(o.updatedAt),
+                deleted: Value(o.deleted),
+              ),
+            ),
+          );
+        }
+        for (final e in result.playEvents) {
+          b.insert(
+            playEvents,
+            PlayEventsCompanion.insert(
+              trackFp: e.trackFp,
+              playedAt: e.playedAt,
+              eventType: Value(e.eventType),
+            ),
+            mode: InsertMode.insertOrIgnore, // 自然键唯一索引兜底,幂等
+          );
+        }
+      });
+
+      // 文本修正变了就物化回 tracks,否则同步过来的标题在 UI 上看不到。
+      // reapplyAllOverrides 内部是 batch(单次流失效),不会引发风暴。
+      if (result.overrides.isNotEmpty) {
+        await reapplyAllOverrides();
+      }
+    });
+  }
 }
