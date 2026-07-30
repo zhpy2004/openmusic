@@ -332,6 +332,79 @@ void main() {
       final round3 = mergeMetadata(local: onA2, remote: onB2);
       expect(round3.changeCount, 0);
     });
+
+    // 真实协议是不对称的(spec §3/计划 Task 6)——不是两端各自合并对方的
+    // "原始"快照,而是:B 先把 A 的快照合并进自己库,再把**合并后**的快照
+    // 回给 A;A 合并的是 B 合并后的那份,不是 B 的原始快照。
+    //
+    // 这条不对称路径下,"追加新成员的落点只看本地最大值"曾经真的会撞号:
+    // B 把它独有的 fp-x/fp-y(来自 A)安置到 B 那边的 2、3 后回传给 A,A 若
+    // 只按自己的本地最大值(2)起算 fp-z/fp-w 的追加位置,就会算出同样的
+    // 2、3,与马上要从 B 采纳的 fp-x=2、fp-y=3 相撞。修复后落点改成同时避开
+    // 本地与对端两边的最大值,实测(见下方 round1/round2 断言)不再撞号。
+    Map<String, int> positionsOf(MetadataSnapshot s) => {
+      for (final i in s.playlistItems) i.trackFp: i.position,
+    };
+
+    ({MetadataSnapshot a, MetadataSnapshot b}) realSyncRound(
+      MetadataSnapshot a,
+      MetadataSnapshot b,
+    ) {
+      // 1) A 把快照发给 B;2) B 先合并 A、更新自己,把**合并后**的快照回给 A。
+      final bAfter = applyForTest(b, mergeMetadata(local: b, remote: a));
+      // 3) A 合并的是 B 合并后的那份。
+      final aAfter = applyForTest(a, mergeMetadata(local: a, remote: bAfter));
+      return (a: aAfter, b: bAfter);
+    }
+
+    test('真实协议路径:不对称往返,两端各自内部 position 无重复', () {
+      final a0 = snap(
+        'device-a',
+        items: [item('p1', 'fp-x', 0, 100), item('p1', 'fp-y', 1, 100)],
+      );
+      final b0 = snap(
+        'device-b',
+        items: [item('p1', 'fp-z', 0, 100), item('p1', 'fp-w', 1, 100)],
+      );
+
+      final round1 = realSyncRound(a0, b0);
+      final pa1 = positionsOf(round1.a);
+      final pb1 = positionsOf(round1.b);
+
+      void expectNoDuplicatePositions(Map<String, int> ps, String label) {
+        final values = ps.values.toList();
+        expect(
+          values.toSet().length,
+          values.length,
+          reason: '$label 出现重复 position: $ps',
+        );
+      }
+
+      // 实测(修复后):A 的追加落点让到了本地(2)与对端(4)两边最大值
+      // 之后,B 未参与本轮种子计算所以仍是它自己的 max+1。
+      expect(pa1, {'fp-x': 2, 'fp-y': 3, 'fp-z': 4, 'fp-w': 5});
+      expect(pb1, {'fp-z': 0, 'fp-w': 1, 'fp-x': 2, 'fp-y': 3});
+      expectNoDuplicatePositions(pa1, 'A(round1)');
+      expectNoDuplicatePositions(pb1, 'B(round1)');
+
+      final round2 = realSyncRound(round1.a, round1.b);
+      final pa2 = positionsOf(round2.a);
+      final pb2 = positionsOf(round2.b);
+      // 实测:第二轮里 fp-z/fp-w 在两端都已存在且 updatedAt 相等(平局),
+      // 平局统一判给 device-b,A 全盘改用 B 的 position,一次收敛。
+      expect(pa2, {'fp-x': 2, 'fp-y': 3, 'fp-z': 0, 'fp-w': 1});
+      expectNoDuplicatePositions(pa2, 'A(round2)');
+      expectNoDuplicatePositions(pb2, 'B(round2)');
+      expect(pa2, pb2, reason: '第二轮之后两端 position 分配应完全一致');
+
+      final round3ChangeOnB = mergeMetadata(local: round2.b, remote: round2.a);
+      final round3ChangeOnA = mergeMetadata(
+        local: round2.a,
+        remote: applyForTest(round2.b, round3ChangeOnB),
+      );
+      expect(round3ChangeOnB.changeCount, 0, reason: '第三轮 B 侧应无变更(已收敛)');
+      expect(round3ChangeOnA.changeCount, 0, reason: '第三轮 A 侧应无变更(已收敛)');
+    });
   });
 }
 

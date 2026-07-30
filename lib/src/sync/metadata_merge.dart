@@ -96,13 +96,29 @@ MergeResult mergeMetadata({
 
   // --- 歌单成员:按 (歌单, 指纹) 按行 LWW ---
   final localItems = {for (final i in local.playlistItems) i.key: i};
-  // 每个歌单当前最大 position(含已删行,避免复活时撞号)
+  // 每个歌单当前最大 position(含已删行,避免复活时撞号)。
+  //
+  // 追加落点要同时避开**本地已有**和**即将从对端采纳**的 position:真实同步
+  // 协议是不对称的(先由对端把我方快照合并进它自己库,再把它合并后的快照
+  // 回给我方) —— 这份"对端回传的快照"里,对端早已把它自己独有的新成员
+  // 安置到了它那边的 max+1 位置,那些位置数字会随对端的行原样被我方采纳
+  // (双方都存在的项走 remoteWins 分支,直接沿用 r.position)。如果这里的
+  // 种子只看本地最大值,我方为"对端独有、本地没有"的项重新分配的追加位置
+  // 就可能与"对端已有、马上要被我方采纳"的位置撞在一起,导致
+  // ORDER BY position 顺序未定义。
   final nextPosition = <String, int>{};
-  for (final i in local.playlistItems) {
+  void bumpNextPosition(PlaylistItemRow i) {
     final cur = nextPosition[i.playlistUuid];
     if (cur == null || i.position >= cur) {
       nextPosition[i.playlistUuid] = i.position + 1;
     }
+  }
+
+  for (final i in local.playlistItems) {
+    bumpNextPosition(i);
+  }
+  for (final i in remote.playlistItems) {
+    bumpNextPosition(i);
   }
   final playlistItems = <PlaylistItemRow>[];
   // 按对端 position 升序处理,保住对端内部的相对顺序
