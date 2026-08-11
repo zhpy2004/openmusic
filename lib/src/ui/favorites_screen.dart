@@ -25,32 +25,46 @@ class FavoritesScreen extends ConsumerWidget {
                 final byFp = {
                   for (final t in tracksAsync.value!) t.fingerprint: t,
                 };
-                final favTracks = [
-                  for (final fp in favFps.value!)
+                // 本机没有的曲目**置灰保留,不丢弃**(与歌单详情页一致)。
+                // 丢弃的话,同步过来的收藏会整个"人间蒸发"——M3-B 之后这是常态
+                // 而非边缘情况:元数据先到、文件要等 M3-C 才搬过来。
+                final favFpList = favFps.value!;
+                final playable = [
+                  for (final fp in favFpList)
                     if (byFp[fp] != null) byFp[fp]!,
                 ];
-                if (favTracks.isEmpty) {
+                if (favFpList.isEmpty) {
                   return Center(child: Text(l10n.favoritesEmpty));
                 }
                 return ListView.builder(
-                  itemCount: favTracks.length,
+                  itemCount: favFpList.length,
                   itemBuilder: (context, i) {
-                    final t = favTracks[i];
+                    final t = byFp[favFpList[i]];
+                    final missing = t == null;
                     return ListTile(
-                      leading: const Icon(Icons.favorite, color: Colors.pink),
+                      enabled: !missing,
+                      leading: Icon(
+                        Icons.favorite,
+                        color: missing ? Theme.of(context).disabledColor : Colors.pink,
+                      ),
                       title: Text(
-                        t.title,
+                        t?.title ?? l10n.fileMissing,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
-                        t.artist,
+                        t?.artist ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      onTap: () => ref
-                          .read(playbackControllerProvider.notifier)
-                          .playTracks(favTracks, startIndex: i),
+                      onTap: missing
+                          ? null
+                          : () => ref
+                                .read(playbackControllerProvider.notifier)
+                                .playTracks(
+                                  playable,
+                                  startIndex: playable.indexOf(t),
+                                ),
                     );
                   },
                 );

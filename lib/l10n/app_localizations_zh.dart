@@ -381,7 +381,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String syncSummary(int playlists, int favorites, int plays) {
-    return '歌单 +$playlists · 收藏 +$favorites · 播放记录 +$plays';
+    return '已同步:歌单变更 $playlists · 收藏变更 $favorites · 新增播放记录 $plays';
   }
 
   @override

@@ -427,7 +427,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String syncSummary(int playlists, int favorites, int plays) {
-    return 'Playlists +$playlists · Favorites +$favorites · Plays +$plays';
+    return 'Synced: $playlists playlist changes · $favorites favorite changes · $plays new plays';
   }
 
   @override

@@ -122,7 +122,7 @@
   "syncUnpair": "解除配对",
   "syncTestConnection": "测试连接",
   "syncNow": "同步",
-  "syncSummary": "歌单 +{playlists} · 收藏 +{favorites} · 播放记录 +{plays}",
+  "syncSummary": "已同步:歌单变更 {playlists} · 收藏变更 {favorites} · 新增播放记录 {plays}",
   "syncAlreadyUpToDate": "已是最新",
   "syncPeerTooOld": "对方版本不支持同步,请升级 openmusic",
   "syncPairingWith": "与 {device} 配对",

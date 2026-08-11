@@ -755,7 +755,7 @@ abstract class AppLocalizations {
   /// No description provided for @syncSummary.
   ///
   /// In en, this message translates to:
-  /// **'Playlists +{playlists} · Favorites +{favorites} · Plays +{plays}'**
+  /// **'Synced: {playlists} playlist changes · {favorites} favorite changes · {plays} new plays'**
   String syncSummary(int playlists, int favorites, int plays);
 
   /// No description provided for @syncAlreadyUpToDate.
