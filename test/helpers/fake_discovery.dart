@@ -8,6 +8,10 @@ class FakeDiscovery implements Discovery {
   String? startedWith;
   bool stopped = false;
 
+  /// start()/stop() 各被调用了几次 —— 用来断言"重新发现真的重起了一轮"。
+  int startCount = 0;
+  int stopCount = 0;
+
   @override
   Stream<List<DiscoveredPeer>> get peers => _controller.stream;
 
@@ -19,11 +23,13 @@ class FakeDiscovery implements Discovery {
     required String platform,
   }) async {
     startedWith = '$port/$deviceId/$deviceName/$platform';
+    startCount++;
   }
 
   @override
   Future<void> stop() async {
     stopped = true;
+    stopCount++;
   }
 
   void emit(List<DiscoveredPeer> list) => _controller.add(list);

@@ -172,13 +172,13 @@ class SyncScreen extends ConsumerWidget {
           TextButton(
             onPressed: address == null
                 ? null
-                : () => _syncNow(context, l10n, controller, peer, address),
+                : () => _syncNow(context, l10n, controller, peer),
             child: Text(l10n.syncNow),
           ),
           TextButton(
             onPressed: address == null
                 ? null
-                : () => _testConnection(context, l10n, controller, peer, address),
+                : () => _testConnection(context, l10n, controller, peer),
             child: Text(l10n.syncTestConnection),
           ),
           IconButton(
@@ -344,15 +344,15 @@ class SyncScreen extends ConsumerWidget {
     AppLocalizations l10n,
     SyncController controller,
     Peer peer,
-    String address,
   ) async {
     final client = controller.client;
     if (client == null) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final res = await client.hello(
-        peerDeviceId: peer.deviceId,
-        address: address,
+      final res = await controller.runWithPeer(
+        peer.deviceId,
+        (address) =>
+            client.hello(peerDeviceId: peer.deviceId, address: address),
       );
       messenger.showSnackBar(
         SnackBar(
@@ -388,15 +388,15 @@ class SyncScreen extends ConsumerWidget {
     AppLocalizations l10n,
     SyncController controller,
     Peer peer,
-    String address,
   ) async {
     final client = controller.client;
     if (client == null) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final s = await client.syncMetadata(
-        peerDeviceId: peer.deviceId,
-        address: address,
+      final s = await controller.runWithPeer(
+        peer.deviceId,
+        (address) =>
+            client.syncMetadata(peerDeviceId: peer.deviceId, address: address),
       );
       messenger.showSnackBar(
         SnackBar(

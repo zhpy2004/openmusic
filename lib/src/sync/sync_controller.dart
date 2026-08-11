@@ -141,15 +141,83 @@ class SyncController extends ChangeNotifier {
     await db.setLocalDeviceName(name);
     identity = DeviceIdentity(deviceId: current.deviceId, deviceName: name);
     notifyListeners();
+    await refreshDiscovery();
+  }
+
+  /// 强制重新发现:停掉再起一轮 mDNS,丢弃过期记录。
+  ///
+  /// 对端 App 重启后会拿到**新的随机端口**,而它若没来得及发 mDNS 告别包,
+  /// 本机就会一直攥着旧地址。重起一轮发现是让缓存作废的最直接办法。
+  Future<void> refreshDiscovery() async {
+    final id = identity;
     final port = _server?.port;
-    if (port == null) return;
+    if (port == null || id == null) return; // 服务没起来,没什么可刷新的
     await discovery.stop();
     await discovery.start(
       port: port,
-      deviceId: current.deviceId,
-      deviceName: name,
+      deviceId: id.deviceId,
+      deviceName: id.deviceName,
       platform: platform,
     );
+  }
+
+  /// 跑一个需要对端地址的动作;地址过期(连不上)时**自动重新发现并重试一次**。
+  ///
+  /// [SyncAuthException] / [SyncUnsupportedException] 不重试 —— 那是语义错误
+  /// (已解除配对、对端版本太老),换个地址也一样,重试只会让用户多等。
+  Future<T> runWithPeer<T>(
+    String peerDeviceId,
+    Future<T> Function(String address) action, {
+    Duration discoveryWaitTimeout = const Duration(seconds: 3),
+    Duration discoveryPollInterval = const Duration(milliseconds: 200),
+  }) async {
+    final address = await _resolvePeerAddress(peerDeviceId);
+    try {
+      return await action(address);
+    } on SyncAuthException {
+      rethrow;
+    } on SyncUnsupportedException {
+      rethrow;
+    } catch (_) {
+      await refreshDiscovery();
+      final newAddress = await _waitForAddressChange(
+        peerDeviceId,
+        address,
+        timeout: discoveryWaitTimeout,
+        pollInterval: discoveryPollInterval,
+      );
+      // 重新发现后地址没变(或压根没等到):再重试也是白等,抛原异常。
+      if (newAddress == null) rethrow;
+      return await action(newAddress);
+    }
+  }
+
+  /// 优先取 mDNS 实时地址,没有就退回库里记的上次联系地址。
+  Future<String> _resolvePeerAddress(String peerDeviceId) async {
+    final live = addressOf(peerDeviceId);
+    if (live != null) return live;
+    final peer = await db.getPeer(peerDeviceId);
+    final last = peer?.lastAddress;
+    if (last != null) return last;
+    throw StateError('设备 $peerDeviceId 没有可用地址(未在局域网中发现)');
+  }
+
+  /// 轮询等待发现层给出一个与 [oldAddress] 不同的新地址;超时返回 null。
+  /// 用 `Future.delayed` 让出事件循环,不忙等、不卡 UI 线程。
+  Future<String?> _waitForAddressChange(
+    String peerDeviceId,
+    String oldAddress, {
+    required Duration timeout,
+    required Duration pollInterval,
+  }) async {
+    var waited = Duration.zero;
+    while (waited < timeout) {
+      await Future<void>.delayed(pollInterval);
+      waited += pollInterval;
+      final addr = addressOf(peerDeviceId);
+      if (addr != null && addr != oldAddress) return addr;
+    }
+    return null;
   }
 
   @override
