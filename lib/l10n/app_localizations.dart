@@ -746,6 +746,30 @@ abstract class AppLocalizations {
   /// **'Test connection'**
   String get syncTestConnection;
 
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get syncNow;
+
+  /// No description provided for @syncSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced: {playlists} playlist changes · {favorites} favorite changes · {plays} new plays'**
+  String syncSummary(int playlists, int favorites, int plays);
+
+  /// No description provided for @syncAlreadyUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Already up to date'**
+  String get syncAlreadyUpToDate;
+
+  /// No description provided for @syncPeerTooOld.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device doesn\'t support syncing — please update openmusic'**
+  String get syncPeerTooOld;
+
   /// No description provided for @syncPairingWith.
   ///
   /// In en, this message translates to:

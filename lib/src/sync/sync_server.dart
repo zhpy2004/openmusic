@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../data/database.dart';
+import 'metadata_merge.dart';
 import 'pair_crypto.dart';
 import 'request_auth.dart';
+import 'sync_payload.dart';
 
 /// 收到配对请求时交给 UI 的信息。UI 显示 [code] 并等用户确认。
 class PairRequest {
@@ -51,7 +53,11 @@ class SyncServer {
     required this.platform,
     required this.trackCount,
     this.onPairRequest,
+    this.enableMetadataSyncForTest = true,
   });
+
+  /// 仅测试:置 false 可模拟"对端是只有 M3-A 的老版本"(该路径返回 404)。
+  final bool enableMetadataSyncForTest;
 
   static const protocolVersion = 1;
 
@@ -138,6 +144,12 @@ class SyncServer {
       }
       if (req.method == 'POST' && path == '/v1/pair/confirm') {
         await _handlePairConfirm(req, body);
+        return;
+      }
+      if (req.method == 'POST' &&
+          path == '/v1/sync/metadata' &&
+          enableMetadataSyncForTest) {
+        await _handleMetadataSync(req, body);
         return;
       }
       await _respond(req, 404, {'error': 'not_found'});
@@ -325,6 +337,29 @@ class SyncServer {
       await db.recordPeerContact(pending.deviceId, address: remote);
     }
     await _respond(req, 200, {'did': deviceId, 'name': deviceName});
+  }
+
+  /// 收到对端全量快照 → 合并进本机 → **把本机合并后的快照回给对端**。
+  /// 一次往返双向完成;重复调用只是把同样的合并再算一遍,天然幂等。
+  Future<void> _handleMetadataSync(HttpRequest req, List<int> body) async {
+    if (await _authorize(req, body) != null) return;
+
+    final MetadataSnapshot remote;
+    try {
+      remote = MetadataSnapshot.fromJson(
+        jsonDecode(utf8.decode(body)) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      // 解析失败整轮拒绝,不做部分应用——半懂的数据比不同步更危险。
+      await _respond(req, 400, {'error': 'bad_snapshot'});
+      return;
+    }
+
+    final local = await db.readSyncSnapshot(deviceId);
+    await db.applySyncChanges(mergeMetadata(local: local, remote: remote));
+
+    final merged = await db.readSyncSnapshot(deviceId);
+    await _respond(req, 200, merged.toJson());
   }
 
   Future<void> _respond(

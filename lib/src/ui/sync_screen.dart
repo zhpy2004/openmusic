@@ -172,7 +172,13 @@ class SyncScreen extends ConsumerWidget {
           TextButton(
             onPressed: address == null
                 ? null
-                : () => _testConnection(context, l10n, controller, peer, address),
+                : () => _syncNow(context, l10n, controller, peer),
+            child: Text(l10n.syncNow),
+          ),
+          TextButton(
+            onPressed: address == null
+                ? null
+                : () => _testConnection(context, l10n, controller, peer),
             child: Text(l10n.syncTestConnection),
           ),
           IconButton(
@@ -338,15 +344,15 @@ class SyncScreen extends ConsumerWidget {
     AppLocalizations l10n,
     SyncController controller,
     Peer peer,
-    String address,
   ) async {
     final client = controller.client;
     if (client == null) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final res = await client.hello(
-        peerDeviceId: peer.deviceId,
-        address: address,
+      final res = await controller.runWithPeer(
+        peer.deviceId,
+        (address) =>
+            client.hello(peerDeviceId: peer.deviceId, address: address),
       );
       messenger.showSnackBar(
         SnackBar(
@@ -360,6 +366,49 @@ class SyncScreen extends ConsumerWidget {
           ),
         ),
       );
+    } on SyncAuthException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(switch (e.reason) {
+            'unknown_device' => l10n.syncAuthUnknownDevice,
+            'clock_skew' => l10n.syncAuthClockSkew,
+            _ => l10n.syncAuthOther(e.reason),
+          }),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.syncConnectFailed('$e'))),
+      );
+    }
+  }
+
+  Future<void> _syncNow(
+    BuildContext context,
+    AppLocalizations l10n,
+    SyncController controller,
+    Peer peer,
+  ) async {
+    final client = controller.client;
+    if (client == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final s = await controller.runWithPeer(
+        peer.deviceId,
+        (address) =>
+            client.syncMetadata(peerDeviceId: peer.deviceId, address: address),
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            s.isEmpty
+                ? l10n.syncAlreadyUpToDate
+                : l10n.syncSummary(s.playlists, s.favorites, s.playEvents),
+          ),
+        ),
+      );
+    } on SyncUnsupportedException {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.syncPeerTooOld)));
     } on SyncAuthException catch (e) {
       messenger.showSnackBar(
         SnackBar(

@@ -423,6 +423,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncTestConnection => 'Test connection';
 
   @override
+  String get syncNow => 'Sync';
+
+  @override
+  String syncSummary(int playlists, int favorites, int plays) {
+    return 'Synced: $playlists playlist changes · $favorites favorite changes · $plays new plays';
+  }
+
+  @override
+  String get syncAlreadyUpToDate => 'Already up to date';
+
+  @override
+  String get syncPeerTooOld =>
+      'The other device doesn\'t support syncing — please update openmusic';
+
+  @override
   String syncPairingWith(String device) {
     return 'Pairing with $device';
   }

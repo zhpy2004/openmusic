@@ -976,8 +976,29 @@ class $PlaylistsTable extends Playlists
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
   @override
-  List<GeneratedColumn> get $columns => [uuid, name, createdAt, updatedAt];
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    uuid,
+    name,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1022,6 +1043,12 @@ class $PlaylistsTable extends Playlists
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -1047,6 +1074,10 @@ class $PlaylistsTable extends Playlists
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -1061,11 +1092,15 @@ class Playlist extends DataClass implements Insertable<Playlist> {
   final String name;
   final int createdAt;
   final int updatedAt;
+
+  /// 软删墓碑:删除不真删行,否则删除无法跨设备传播(会被对端"复活")。
+  final bool deleted;
   const Playlist({
     required this.uuid,
     required this.name,
     required this.createdAt,
     required this.updatedAt,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1074,6 +1109,7 @@ class Playlist extends DataClass implements Insertable<Playlist> {
     map['name'] = Variable<String>(name);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
@@ -1083,6 +1119,7 @@ class Playlist extends DataClass implements Insertable<Playlist> {
       name: Value(name),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
     );
   }
 
@@ -1096,6 +1133,7 @@ class Playlist extends DataClass implements Insertable<Playlist> {
       name: serializer.fromJson<String>(json['name']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -1106,6 +1144,7 @@ class Playlist extends DataClass implements Insertable<Playlist> {
       'name': serializer.toJson<String>(name),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
@@ -1114,11 +1153,13 @@ class Playlist extends DataClass implements Insertable<Playlist> {
     String? name,
     int? createdAt,
     int? updatedAt,
+    bool? deleted,
   }) => Playlist(
     uuid: uuid ?? this.uuid,
     name: name ?? this.name,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
   );
   Playlist copyWithCompanion(PlaylistsCompanion data) {
     return Playlist(
@@ -1126,6 +1167,7 @@ class Playlist extends DataClass implements Insertable<Playlist> {
       name: data.name.present ? data.name.value : this.name,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -1135,13 +1177,14 @@ class Playlist extends DataClass implements Insertable<Playlist> {
           ..write('uuid: $uuid, ')
           ..write('name: $name, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(uuid, name, createdAt, updatedAt);
+  int get hashCode => Object.hash(uuid, name, createdAt, updatedAt, deleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1149,7 +1192,8 @@ class Playlist extends DataClass implements Insertable<Playlist> {
           other.uuid == this.uuid &&
           other.name == this.name &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
 }
 
 class PlaylistsCompanion extends UpdateCompanion<Playlist> {
@@ -1157,12 +1201,14 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
   final Value<String> name;
   final Value<int> createdAt;
   final Value<int> updatedAt;
+  final Value<bool> deleted;
   final Value<int> rowid;
   const PlaylistsCompanion({
     this.uuid = const Value.absent(),
     this.name = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PlaylistsCompanion.insert({
@@ -1170,6 +1216,7 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
     required String name,
     required int createdAt,
     required int updatedAt,
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : uuid = Value(uuid),
        name = Value(name),
@@ -1180,6 +1227,7 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
     Expression<String>? name,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1187,6 +1235,7 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
       if (name != null) 'name': name,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1196,6 +1245,7 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
     Value<String>? name,
     Value<int>? createdAt,
     Value<int>? updatedAt,
+    Value<bool>? deleted,
     Value<int>? rowid,
   }) {
     return PlaylistsCompanion(
@@ -1203,6 +1253,7 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
       name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1222,6 +1273,9 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1235,6 +1289,7 @@ class PlaylistsCompanion extends UpdateCompanion<Playlist> {
           ..write('name: $name, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1280,8 +1335,41 @@ class $PlaylistItemsTable extends PlaylistItems
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [playlistUuid, trackFp, position];
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    playlistUuid,
+    trackFp,
+    position,
+    updatedAt,
+    deleted,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1321,6 +1409,18 @@ class $PlaylistItemsTable extends PlaylistItems
     } else if (isInserting) {
       context.missing(_positionMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -1346,6 +1446,14 @@ class $PlaylistItemsTable extends PlaylistItems
         DriftSqlType.int,
         data['${effectivePrefix}position'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -1359,10 +1467,16 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
   final String playlistUuid;
   final String trackFp;
   final int position;
+
+  /// 本行自己的最后改动时刻 —— 成员是**按行 LWW** 合并的,不跟歌单整体走。
+  final int updatedAt;
+  final bool deleted;
   const PlaylistItem({
     required this.playlistUuid,
     required this.trackFp,
     required this.position,
+    required this.updatedAt,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1370,6 +1484,8 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
     map['playlist_uuid'] = Variable<String>(playlistUuid);
     map['track_fp'] = Variable<String>(trackFp);
     map['position'] = Variable<int>(position);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
@@ -1378,6 +1494,8 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
       playlistUuid: Value(playlistUuid),
       trackFp: Value(trackFp),
       position: Value(position),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
     );
   }
 
@@ -1390,6 +1508,8 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
       playlistUuid: serializer.fromJson<String>(json['playlistUuid']),
       trackFp: serializer.fromJson<String>(json['trackFp']),
       position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -1399,6 +1519,8 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
       'playlistUuid': serializer.toJson<String>(playlistUuid),
       'trackFp': serializer.toJson<String>(trackFp),
       'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
@@ -1406,10 +1528,14 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
     String? playlistUuid,
     String? trackFp,
     int? position,
+    int? updatedAt,
+    bool? deleted,
   }) => PlaylistItem(
     playlistUuid: playlistUuid ?? this.playlistUuid,
     trackFp: trackFp ?? this.trackFp,
     position: position ?? this.position,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
   );
   PlaylistItem copyWithCompanion(PlaylistItemsCompanion data) {
     return PlaylistItem(
@@ -1418,6 +1544,8 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
           : this.playlistUuid,
       trackFp: data.trackFp.present ? data.trackFp.value : this.trackFp,
       position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -1426,37 +1554,48 @@ class PlaylistItem extends DataClass implements Insertable<PlaylistItem> {
     return (StringBuffer('PlaylistItem(')
           ..write('playlistUuid: $playlistUuid, ')
           ..write('trackFp: $trackFp, ')
-          ..write('position: $position')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(playlistUuid, trackFp, position);
+  int get hashCode =>
+      Object.hash(playlistUuid, trackFp, position, updatedAt, deleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PlaylistItem &&
           other.playlistUuid == this.playlistUuid &&
           other.trackFp == this.trackFp &&
-          other.position == this.position);
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
 }
 
 class PlaylistItemsCompanion extends UpdateCompanion<PlaylistItem> {
   final Value<String> playlistUuid;
   final Value<String> trackFp;
   final Value<int> position;
+  final Value<int> updatedAt;
+  final Value<bool> deleted;
   final Value<int> rowid;
   const PlaylistItemsCompanion({
     this.playlistUuid = const Value.absent(),
     this.trackFp = const Value.absent(),
     this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PlaylistItemsCompanion.insert({
     required String playlistUuid,
     required String trackFp,
     required int position,
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : playlistUuid = Value(playlistUuid),
        trackFp = Value(trackFp),
@@ -1465,12 +1604,16 @@ class PlaylistItemsCompanion extends UpdateCompanion<PlaylistItem> {
     Expression<String>? playlistUuid,
     Expression<String>? trackFp,
     Expression<int>? position,
+    Expression<int>? updatedAt,
+    Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (playlistUuid != null) 'playlist_uuid': playlistUuid,
       if (trackFp != null) 'track_fp': trackFp,
       if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1479,12 +1622,16 @@ class PlaylistItemsCompanion extends UpdateCompanion<PlaylistItem> {
     Value<String>? playlistUuid,
     Value<String>? trackFp,
     Value<int>? position,
+    Value<int>? updatedAt,
+    Value<bool>? deleted,
     Value<int>? rowid,
   }) {
     return PlaylistItemsCompanion(
       playlistUuid: playlistUuid ?? this.playlistUuid,
       trackFp: trackFp ?? this.trackFp,
       position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1501,6 +1648,12 @@ class PlaylistItemsCompanion extends UpdateCompanion<PlaylistItem> {
     if (position.present) {
       map['position'] = Variable<int>(position.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1513,6 +1666,8 @@ class PlaylistItemsCompanion extends UpdateCompanion<PlaylistItem> {
           ..write('playlistUuid: $playlistUuid, ')
           ..write('trackFp: $trackFp, ')
           ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1547,8 +1702,35 @@ class $FavoritesTable extends Favorites
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [trackFp, addedAt];
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [trackFp, addedAt, updatedAt, deleted];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1577,6 +1759,18 @@ class $FavoritesTable extends Favorites
     } else if (isInserting) {
       context.missing(_addedAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -1594,6 +1788,14 @@ class $FavoritesTable extends Favorites
         DriftSqlType.int,
         data['${effectivePrefix}added_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -1606,17 +1808,31 @@ class $FavoritesTable extends Favorites
 class Favorite extends DataClass implements Insertable<Favorite> {
   final String trackFp;
   final int addedAt;
-  const Favorite({required this.trackFp, required this.addedAt});
+  final int updatedAt;
+  final bool deleted;
+  const Favorite({
+    required this.trackFp,
+    required this.addedAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['track_fp'] = Variable<String>(trackFp);
     map['added_at'] = Variable<int>(addedAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
   FavoritesCompanion toCompanion(bool nullToAbsent) {
-    return FavoritesCompanion(trackFp: Value(trackFp), addedAt: Value(addedAt));
+    return FavoritesCompanion(
+      trackFp: Value(trackFp),
+      addedAt: Value(addedAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
   }
 
   factory Favorite.fromJson(
@@ -1627,6 +1843,8 @@ class Favorite extends DataClass implements Insertable<Favorite> {
     return Favorite(
       trackFp: serializer.fromJson<String>(json['trackFp']),
       addedAt: serializer.fromJson<int>(json['addedAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -1635,17 +1853,28 @@ class Favorite extends DataClass implements Insertable<Favorite> {
     return <String, dynamic>{
       'trackFp': serializer.toJson<String>(trackFp),
       'addedAt': serializer.toJson<int>(addedAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
-  Favorite copyWith({String? trackFp, int? addedAt}) => Favorite(
+  Favorite copyWith({
+    String? trackFp,
+    int? addedAt,
+    int? updatedAt,
+    bool? deleted,
+  }) => Favorite(
     trackFp: trackFp ?? this.trackFp,
     addedAt: addedAt ?? this.addedAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
   );
   Favorite copyWithCompanion(FavoritesCompanion data) {
     return Favorite(
       trackFp: data.trackFp.present ? data.trackFp.value : this.trackFp,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -1653,44 +1882,58 @@ class Favorite extends DataClass implements Insertable<Favorite> {
   String toString() {
     return (StringBuffer('Favorite(')
           ..write('trackFp: $trackFp, ')
-          ..write('addedAt: $addedAt')
+          ..write('addedAt: $addedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(trackFp, addedAt);
+  int get hashCode => Object.hash(trackFp, addedAt, updatedAt, deleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Favorite &&
           other.trackFp == this.trackFp &&
-          other.addedAt == this.addedAt);
+          other.addedAt == this.addedAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
 }
 
 class FavoritesCompanion extends UpdateCompanion<Favorite> {
   final Value<String> trackFp;
   final Value<int> addedAt;
+  final Value<int> updatedAt;
+  final Value<bool> deleted;
   final Value<int> rowid;
   const FavoritesCompanion({
     this.trackFp = const Value.absent(),
     this.addedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FavoritesCompanion.insert({
     required String trackFp,
     required int addedAt,
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : trackFp = Value(trackFp),
        addedAt = Value(addedAt);
   static Insertable<Favorite> custom({
     Expression<String>? trackFp,
     Expression<int>? addedAt,
+    Expression<int>? updatedAt,
+    Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (trackFp != null) 'track_fp': trackFp,
       if (addedAt != null) 'added_at': addedAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1698,11 +1941,15 @@ class FavoritesCompanion extends UpdateCompanion<Favorite> {
   FavoritesCompanion copyWith({
     Value<String>? trackFp,
     Value<int>? addedAt,
+    Value<int>? updatedAt,
+    Value<bool>? deleted,
     Value<int>? rowid,
   }) {
     return FavoritesCompanion(
       trackFp: trackFp ?? this.trackFp,
       addedAt: addedAt ?? this.addedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1716,6 +1963,12 @@ class FavoritesCompanion extends UpdateCompanion<Favorite> {
     if (addedAt.present) {
       map['added_at'] = Variable<int>(addedAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1727,6 +1980,8 @@ class FavoritesCompanion extends UpdateCompanion<Favorite> {
     return (StringBuffer('FavoritesCompanion(')
           ..write('trackFp: $trackFp, ')
           ..write('addedAt: $addedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2086,6 +2341,21 @@ class $TrackOverridesTable extends TrackOverrides
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     trackFp,
@@ -2093,6 +2363,7 @@ class $TrackOverridesTable extends TrackOverrides
     artist,
     album,
     updatedAt,
+    deleted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2140,6 +2411,12 @@ class $TrackOverridesTable extends TrackOverrides
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -2169,6 +2446,10 @@ class $TrackOverridesTable extends TrackOverrides
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -2184,12 +2465,14 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
   final String? artist;
   final String? album;
   final int updatedAt;
+  final bool deleted;
   const TrackOverride({
     required this.trackFp,
     this.title,
     this.artist,
     this.album,
     required this.updatedAt,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2205,6 +2488,7 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
       map['album'] = Variable<String>(album);
     }
     map['updated_at'] = Variable<int>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
@@ -2221,6 +2505,7 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
           ? const Value.absent()
           : Value(album),
       updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
     );
   }
 
@@ -2235,6 +2520,7 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
       artist: serializer.fromJson<String?>(json['artist']),
       album: serializer.fromJson<String?>(json['album']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -2246,6 +2532,7 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
       'artist': serializer.toJson<String?>(artist),
       'album': serializer.toJson<String?>(album),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
@@ -2255,12 +2542,14 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
     Value<String?> artist = const Value.absent(),
     Value<String?> album = const Value.absent(),
     int? updatedAt,
+    bool? deleted,
   }) => TrackOverride(
     trackFp: trackFp ?? this.trackFp,
     title: title.present ? title.value : this.title,
     artist: artist.present ? artist.value : this.artist,
     album: album.present ? album.value : this.album,
     updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
   );
   TrackOverride copyWithCompanion(TrackOverridesCompanion data) {
     return TrackOverride(
@@ -2269,6 +2558,7 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
       artist: data.artist.present ? data.artist.value : this.artist,
       album: data.album.present ? data.album.value : this.album,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -2279,13 +2569,15 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
           ..write('title: $title, ')
           ..write('artist: $artist, ')
           ..write('album: $album, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(trackFp, title, artist, album, updatedAt);
+  int get hashCode =>
+      Object.hash(trackFp, title, artist, album, updatedAt, deleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2294,7 +2586,8 @@ class TrackOverride extends DataClass implements Insertable<TrackOverride> {
           other.title == this.title &&
           other.artist == this.artist &&
           other.album == this.album &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
 }
 
 class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
@@ -2303,6 +2596,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
   final Value<String?> artist;
   final Value<String?> album;
   final Value<int> updatedAt;
+  final Value<bool> deleted;
   final Value<int> rowid;
   const TrackOverridesCompanion({
     this.trackFp = const Value.absent(),
@@ -2310,6 +2604,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
     this.artist = const Value.absent(),
     this.album = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TrackOverridesCompanion.insert({
@@ -2318,6 +2613,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
     this.artist = const Value.absent(),
     this.album = const Value.absent(),
     required int updatedAt,
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : trackFp = Value(trackFp),
        updatedAt = Value(updatedAt);
@@ -2327,6 +2623,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
     Expression<String>? artist,
     Expression<String>? album,
     Expression<int>? updatedAt,
+    Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2335,6 +2632,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
       if (artist != null) 'artist': artist,
       if (album != null) 'album': album,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2345,6 +2643,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
     Value<String?>? artist,
     Value<String?>? album,
     Value<int>? updatedAt,
+    Value<bool>? deleted,
     Value<int>? rowid,
   }) {
     return TrackOverridesCompanion(
@@ -2353,6 +2652,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
       artist: artist ?? this.artist,
       album: album ?? this.album,
       updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2375,6 +2675,9 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2389,6 +2692,7 @@ class TrackOverridesCompanion extends UpdateCompanion<TrackOverride> {
           ..write('artist: $artist, ')
           ..write('album: $album, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3839,6 +4143,7 @@ typedef $$PlaylistsTableCreateCompanionBuilder =
       required String name,
       required int createdAt,
       required int updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 typedef $$PlaylistsTableUpdateCompanionBuilder =
@@ -3847,6 +4152,7 @@ typedef $$PlaylistsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> createdAt,
       Value<int> updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 
@@ -3876,6 +4182,11 @@ class $$PlaylistsTableFilterComposer
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3908,6 +4219,11 @@ class $$PlaylistsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PlaylistsTableAnnotationComposer
@@ -3930,6 +4246,9 @@ class $$PlaylistsTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
 class $$PlaylistsTableTableManager
@@ -3964,12 +4283,14 @@ class $$PlaylistsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlaylistsCompanion(
                 uuid: uuid,
                 name: name,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3978,12 +4299,14 @@ class $$PlaylistsTableTableManager
                 required String name,
                 required int createdAt,
                 required int updatedAt,
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlaylistsCompanion.insert(
                 uuid: uuid,
                 name: name,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4013,6 +4336,8 @@ typedef $$PlaylistItemsTableCreateCompanionBuilder =
       required String playlistUuid,
       required String trackFp,
       required int position,
+      Value<int> updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 typedef $$PlaylistItemsTableUpdateCompanionBuilder =
@@ -4020,6 +4345,8 @@ typedef $$PlaylistItemsTableUpdateCompanionBuilder =
       Value<String> playlistUuid,
       Value<String> trackFp,
       Value<int> position,
+      Value<int> updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 
@@ -4044,6 +4371,16 @@ class $$PlaylistItemsTableFilterComposer
 
   ColumnFilters<int> get position => $composableBuilder(
     column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4071,6 +4408,16 @@ class $$PlaylistItemsTableOrderingComposer
     column: $table.position,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PlaylistItemsTableAnnotationComposer
@@ -4092,6 +4439,12 @@ class $$PlaylistItemsTableAnnotationComposer
 
   GeneratedColumn<int> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
 class $$PlaylistItemsTableTableManager
@@ -4128,11 +4481,15 @@ class $$PlaylistItemsTableTableManager
                 Value<String> playlistUuid = const Value.absent(),
                 Value<String> trackFp = const Value.absent(),
                 Value<int> position = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlaylistItemsCompanion(
                 playlistUuid: playlistUuid,
                 trackFp: trackFp,
                 position: position,
+                updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4140,11 +4497,15 @@ class $$PlaylistItemsTableTableManager
                 required String playlistUuid,
                 required String trackFp,
                 required int position,
+                Value<int> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlaylistItemsCompanion.insert(
                 playlistUuid: playlistUuid,
                 trackFp: trackFp,
                 position: position,
+                updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4176,12 +4537,16 @@ typedef $$FavoritesTableCreateCompanionBuilder =
     FavoritesCompanion Function({
       required String trackFp,
       required int addedAt,
+      Value<int> updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 typedef $$FavoritesTableUpdateCompanionBuilder =
     FavoritesCompanion Function({
       Value<String> trackFp,
       Value<int> addedAt,
+      Value<int> updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 
@@ -4201,6 +4566,16 @@ class $$FavoritesTableFilterComposer
 
   ColumnFilters<int> get addedAt => $composableBuilder(
     column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4223,6 +4598,16 @@ class $$FavoritesTableOrderingComposer
     column: $table.addedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FavoritesTableAnnotationComposer
@@ -4239,6 +4624,12 @@ class $$FavoritesTableAnnotationComposer
 
   GeneratedColumn<int> get addedAt =>
       $composableBuilder(column: $table.addedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
 class $$FavoritesTableTableManager
@@ -4271,20 +4662,28 @@ class $$FavoritesTableTableManager
               ({
                 Value<String> trackFp = const Value.absent(),
                 Value<int> addedAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FavoritesCompanion(
                 trackFp: trackFp,
                 addedAt: addedAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String trackFp,
                 required int addedAt,
+                Value<int> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FavoritesCompanion.insert(
                 trackFp: trackFp,
                 addedAt: addedAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4488,6 +4887,7 @@ typedef $$TrackOverridesTableCreateCompanionBuilder =
       Value<String?> artist,
       Value<String?> album,
       required int updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 typedef $$TrackOverridesTableUpdateCompanionBuilder =
@@ -4497,6 +4897,7 @@ typedef $$TrackOverridesTableUpdateCompanionBuilder =
       Value<String?> artist,
       Value<String?> album,
       Value<int> updatedAt,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 
@@ -4531,6 +4932,11 @@ class $$TrackOverridesTableFilterComposer
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4568,6 +4974,11 @@ class $$TrackOverridesTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TrackOverridesTableAnnotationComposer
@@ -4593,6 +5004,9 @@ class $$TrackOverridesTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
 class $$TrackOverridesTableTableManager
@@ -4633,6 +5047,7 @@ class $$TrackOverridesTableTableManager
                 Value<String?> artist = const Value.absent(),
                 Value<String?> album = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TrackOverridesCompanion(
                 trackFp: trackFp,
@@ -4640,6 +5055,7 @@ class $$TrackOverridesTableTableManager
                 artist: artist,
                 album: album,
                 updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4649,6 +5065,7 @@ class $$TrackOverridesTableTableManager
                 Value<String?> artist = const Value.absent(),
                 Value<String?> album = const Value.absent(),
                 required int updatedAt,
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TrackOverridesCompanion.insert(
                 trackFp: trackFp,
@@ -4656,6 +5073,7 @@ class $$TrackOverridesTableTableManager
                 artist: artist,
                 album: album,
                 updatedAt: updatedAt,
+                deleted: deleted,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

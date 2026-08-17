@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../data/database.dart';
+import 'metadata_merge.dart';
 import 'pair_crypto.dart';
 import 'request_auth.dart';
+import 'sync_payload.dart';
 import 'sync_server.dart';
 
 enum PairOutcome { paired, rejected, timedOut, failed }
@@ -23,6 +25,37 @@ class SyncTransportException implements Exception {
   final String message;
   @override
   String toString() => message;
+}
+
+/// 对端没有元数据同步端点 —— 它还是只有 M3-A 的老版本。
+class SyncUnsupportedException implements Exception {
+  const SyncUnsupportedException();
+  @override
+  String toString() => 'SyncUnsupportedException';
+}
+
+/// 一次同步在**本地**实际produced的变更数,直接用于 UI 摘要。
+class SyncSummary {
+  const SyncSummary({
+    required this.playlists,
+    required this.playlistItems,
+    required this.favorites,
+    required this.overrides,
+    required this.playEvents,
+  });
+
+  final int playlists;
+  final int playlistItems;
+  final int favorites;
+  final int overrides;
+  final int playEvents;
+
+  bool get isEmpty =>
+      playlists == 0 &&
+      playlistItems == 0 &&
+      favorites == 0 &&
+      overrides == 0 &&
+      playEvents == 0;
 }
 
 /// `/v1/hello` 的响应。
@@ -174,6 +207,67 @@ class SyncClient {
       platform: body['plat'] as String,
       protocolVersion: body['pv'] as int,
       trackCount: body['trackCount'] as int? ?? 0,
+    );
+  }
+
+  /// 与已配对设备做一轮元数据同步。返回**本地实际发生的变更数**。
+  Future<SyncSummary> syncMetadata({
+    required String peerDeviceId,
+    String? address,
+  }) async {
+    final peer = await db.getPeer(peerDeviceId);
+    if (peer == null) {
+      throw StateError('设备 $peerDeviceId 尚未配对');
+    }
+    final target = address ?? peer.lastAddress;
+    if (target == null) {
+      throw StateError('设备 $peerDeviceId 没有可用地址(未在局域网中发现)');
+    }
+    final key = base64.decode(peer.sharedKey);
+
+    final local = await db.readSyncSnapshot(deviceId);
+    final payload = utf8.encode(jsonEncode(local.toJson()));
+    final headers = await signHeaders(
+      deviceId: deviceId,
+      sharedKey: key,
+      method: 'POST',
+      path: '/v1/sync/metadata',
+      body: payload,
+    );
+    final res = await _http
+        .post(
+          Uri.parse('http://$target/v1/sync/metadata'),
+          headers: {...headers, 'content-type': 'application/json'},
+          body: payload,
+        )
+        .timeout(requestTimeout);
+
+    if (res.statusCode == 404) throw const SyncUnsupportedException();
+    if (res.statusCode == 401) {
+      final reason = jsonDecode(res.body)['reason'] as String? ?? 'unknown';
+      throw SyncAuthException(reason);
+    }
+    if (res.statusCode != 200) {
+      throw SyncTransportException('对端返回 ${res.statusCode}');
+    }
+
+    final remote = MetadataSnapshot.fromJson(
+      jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
+    );
+    // 对端已经把我们的快照合并过了,这里合并的是它合并后的状态 → 两端收敛。
+    final result = mergeMetadata(
+      local: await db.readSyncSnapshot(deviceId),
+      remote: remote,
+    );
+    await db.applySyncChanges(result);
+    await db.recordPeerContact(peerDeviceId, address: target);
+
+    return SyncSummary(
+      playlists: result.playlists.length,
+      playlistItems: result.playlistItems.length,
+      favorites: result.favorites.length,
+      overrides: result.overrides.length,
+      playEvents: result.playEvents.length,
     );
   }
 }
