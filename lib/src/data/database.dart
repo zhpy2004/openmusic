@@ -955,7 +955,17 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((r) => r.trackFp).toSet();
   }
 
-  Future<Track?> trackByFingerprint(String fp) => (select(
-    tracks,
-  )..where((t) => t.fingerprint.equals(fp))).getSingleOrNull();
+  /// 按指纹取曲目。**同指纹可能有多行** —— `tracks.path` 唯一但 `fingerprint`
+  /// 不唯一,同一首歌存在于两个路径下就是两行。这不是异常:母 spec §7.5
+  /// 「宁可留重复,不可丢歌」,而 M3-C 的同名避让(`xxx (2).mp3`)正会制造
+  /// 内容相同的第二份。用 getSingleOrNull 会在重复时抛异常,让 `/v1/file/{fp}`
+  /// 端点 500、对端再也拉不到这首歌 —— 所以这里取任意一行即可。
+  Future<Track?> trackByFingerprint(String fp) async {
+    final rows =
+        await (select(tracks)
+              ..where((t) => t.fingerprint.equals(fp))
+              ..limit(1))
+            .get();
+    return rows.isEmpty ? null : rows.first;
+  }
 }
