@@ -122,6 +122,20 @@ class Peers extends Table {
   Set<Column> get primaryKey => {deviceId};
 }
 
+/// 「在本机保留文件」的歌单。没被勾选的歌单只同步定义,不拉文件。
+///
+/// **本机偏好,不进 M3-B 的同步快照** —— 手机要哪几个歌单是手机自己的事,
+/// 电脑替它决定没道理。updatedAt/deleted 只为与既有表形状一致,
+/// 将来若真要同步不必再改 schema。
+class MirroredPlaylists extends Table {
+  TextColumn get playlistUuid => text()();
+  IntColumn get updatedAt => integer()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {playlistUuid};
+}
+
 /// 歌单成员 + 关联曲目(可能为 null=文件缺失/未扫描到)。
 class PlaylistEntry {
   const PlaylistEntry({required this.fp, required this.position, this.track});
@@ -142,6 +156,7 @@ class PlaylistEntry {
     AppSettings,
     LocalDevice,
     Peers,
+    MirroredPlaylists,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -150,7 +165,7 @@ class AppDatabase extends _$AppDatabase {
   final _rnd = Random();
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -229,6 +244,11 @@ class AppDatabase extends _$AppDatabase {
           'CREATE UNIQUE INDEX IF NOT EXISTS idx_play_events_natural_key '
           'ON play_events (track_fp, played_at, event_type)',
         );
+      }
+      // v6→v7:只新建 M3-C 的镜像歌单表,不碰任何老表 —— 因此不受 v6 那次
+      // "createTable 建的是当前表结构"的坑影响(见 M3-B 记忆)。
+      if (from < 7) {
+        await m.createTable(mirroredPlaylists);
       }
     },
   );
@@ -891,4 +911,51 @@ class AppDatabase extends _$AppDatabase {
       }
     });
   }
+
+  /// 勾选/取消「在本机保留文件」。软删而非真删,与其它可同步表形状一致。
+  Future<void> setPlaylistMirrored(String playlistUuid, bool mirrored) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(mirroredPlaylists).insert(
+      MirroredPlaylistsCompanion.insert(
+        playlistUuid: playlistUuid,
+        updatedAt: now,
+        deleted: Value(!mirrored),
+      ),
+      onConflict: DoUpdate(
+        (_) => MirroredPlaylistsCompanion(
+          updatedAt: Value(now),
+          deleted: Value(!mirrored),
+        ),
+      ),
+    );
+  }
+
+  Stream<Set<String>> watchMirroredPlaylistUuids() =>
+      (select(mirroredPlaylists)..where((m) => m.deleted.equals(false)))
+          .watch()
+          .map((rows) => rows.map((r) => r.playlistUuid).toSet());
+
+  Future<Set<String>> mirroredPlaylistUuids() async {
+    final rows = await (select(
+      mirroredPlaylists,
+    )..where((m) => m.deleted.equals(false))).get();
+    return rows.map((r) => r.playlistUuid).toSet();
+  }
+
+  /// 已勾选镜像的歌单里的**全部曲目指纹**(去重)。文件同步的目标集合。
+  /// 已删的成员不算在内。
+  Future<Set<String>> mirroredTrackFingerprints() async {
+    final uuids = await mirroredPlaylistUuids();
+    if (uuids.isEmpty) return <String>{};
+    final rows =
+        await (select(playlistItems)..where(
+              (i) => i.playlistUuid.isIn(uuids) & i.deleted.equals(false),
+            ))
+            .get();
+    return rows.map((r) => r.trackFp).toSet();
+  }
+
+  Future<Track?> trackByFingerprint(String fp) => (select(
+    tracks,
+  )..where((t) => t.fingerprint.equals(fp))).getSingleOrNull();
 }

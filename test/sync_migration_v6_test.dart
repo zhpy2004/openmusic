@@ -32,7 +32,7 @@ void main() {
   /// 走一遍最基本的读写链路,证明"补列"(v3/v4/v5→v6)与"建表"(v1/v2→v6)
   /// 两条迁移路径产出的结构是等价的、真能用——不只是"打得开"。
   Future<void> assertBasicFlowWorks(AppDatabase db) async {
-    expect(db.schemaVersion, 6);
+    expect(db.schemaVersion, 7);
 
     final uuid = await db.createPlaylist('新歌单');
     await db.addToPlaylist(uuid, 'fp-a');
