@@ -56,10 +56,14 @@ class SyncServer {
     required this.trackCount,
     this.onPairRequest,
     this.enableMetadataSyncForTest = true,
+    this.enableFileSyncForTest = true,
   });
 
   /// 仅测试:置 false 可模拟"对端是只有 M3-A 的老版本"(该路径返回 404)。
   final bool enableMetadataSyncForTest;
+
+  /// 仅测试:置 false 可模拟"对端是没有文件同步的老版本"(三个端点返回 404)。
+  final bool enableFileSyncForTest;
 
   static const protocolVersion = 1;
 
@@ -154,15 +158,21 @@ class SyncServer {
         await _handleMetadataSync(req, body);
         return;
       }
-      if (req.method == 'GET' && path == '/v1/files/manifest') {
+      if (req.method == 'GET' &&
+          path == '/v1/files/manifest' &&
+          enableFileSyncForTest) {
         await _handleFilesManifest(req, body);
         return;
       }
-      if (req.method == 'GET' && path.startsWith('/v1/file/')) {
+      if (req.method == 'GET' &&
+          path.startsWith('/v1/file/') &&
+          enableFileSyncForTest) {
         await _handleFileDownload(req, body, path.substring('/v1/file/'.length));
         return;
       }
-      if (req.method == 'GET' && path.startsWith('/v1/sidecar/')) {
+      if (req.method == 'GET' &&
+          path.startsWith('/v1/sidecar/') &&
+          enableFileSyncForTest) {
         await _handleSidecar(req, body, path);
         return;
       }
