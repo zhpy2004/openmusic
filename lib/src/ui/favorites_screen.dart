@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
+import 'fetch_single_track.dart';
 import 'now_playing_bar.dart';
 
 class FavoritesScreen extends ConsumerWidget {
@@ -57,6 +58,14 @@ class FavoritesScreen extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      trailing: missing
+                          ? IconButton(
+                              icon: const Icon(Icons.download_for_offline),
+                              tooltip: l10n.syncFetchThisTrack,
+                              onPressed: () =>
+                                  fetchSingleTrack(context, ref, favFpList[i]),
+                            )
+                          : null,
                       onTap: missing
                           ? null
                           : () => ref

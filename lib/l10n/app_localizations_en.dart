@@ -438,6 +438,54 @@ class AppLocalizationsEn extends AppLocalizations {
       'The other device doesn\'t support syncing — please update openmusic';
 
   @override
+  String get syncMirrorSection => 'Keep files on this device';
+
+  @override
+  String get syncMirrorHint =>
+      'Checked playlists have their audio files downloaded here';
+
+  @override
+  String get syncNoPlaylistsToMirror => 'No playlists yet';
+
+  @override
+  String syncDownloading(int index, int total, String name) {
+    return 'Downloading $index/$total · $name';
+  }
+
+  @override
+  String syncFilesDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '1 file',
+    );
+    return 'Downloaded $_temp0';
+  }
+
+  @override
+  String syncFilesDoneWithFailures(int count, int failed) {
+    return 'Downloaded $count · $failed failed';
+  }
+
+  @override
+  String get syncFilesCancelled =>
+      'Download cancelled — already downloaded files are kept';
+
+  @override
+  String get syncFilesNothingToDo => 'No files to download';
+
+  @override
+  String get syncPeerNoFileSync =>
+      'The other device doesn\'t support file sync — please update openmusic';
+
+  @override
+  String get syncFetchThisTrack => 'Get from paired device';
+
+  @override
+  String get syncFetchFailed => 'Could not get this file';
+
+  @override
   String syncPairingWith(String device) {
     return 'Pairing with $device';
   }
