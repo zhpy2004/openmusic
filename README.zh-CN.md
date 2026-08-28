@@ -6,7 +6,7 @@
 
 想做好两件事:**从零建库不费劲**、**两台设备一键同步**。曲库始终是你自己磁盘上的文件。
 
-> **v0.6.0** —— 播放与曲库体验(歌单/收藏、刮削、歌词、建库引导)已完成,可日常使用,界面支持中英双语。局域网同步开发中,见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
+> **v0.6.4** —— 局域网同步已完成:两台设备互相发现、6 位码配对,歌单/收藏/播放记录合并,并把你勾选镜像的歌单的音频文件拉到本机。此前的功能(歌单/收藏、刮削、歌词、建库引导、中英双语)均已日常使用。见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
 ## 下载
 
@@ -14,10 +14,10 @@
 
 | 平台 | 文件 | 说明 |
 |---|---|---|
-| Windows | `openmusic-v0.6.0-windows-x64.zip` | 解压后双击 `openmusic.exe`,免安装。整个文件夹要保持完整 |
-| Android | `openmusic-v0.6.0-android-universal.apk` | **不确定选哪个就下这个**,通吃所有机型 |
-| Android | `openmusic-v0.6.0-android-arm64-v8a.apk` | 2017 年后的手机基本都是,体积小一半 |
-| Android | `openmusic-v0.6.0-android-armeabi-v7a.apk` | 较老的 32 位设备 |
+| Windows | `openmusic-v0.6.4-windows-x64.zip` | 解压后双击 `openmusic.exe`,免安装。整个文件夹要保持完整 |
+| Android | `openmusic-v0.6.4-android-universal.apk` | **不确定选哪个就下这个**,通吃所有机型 |
+| Android | `openmusic-v0.6.4-android-arm64-v8a.apk` | 2017 年后的手机基本都是,体积小一半 |
+| Android | `openmusic-v0.6.4-android-armeabi-v7a.apk` | 较老的 32 位设备 |
 
 Android 侧装需要在系统里允许「安装未知来源应用」。APK 用固定密钥签名,后续版本可直接覆盖升级。
 
@@ -82,7 +82,7 @@ Flutter · riverpod(状态)· drift/SQLite(索引)· media_kit(播放,mpv 内核
 
 ## 路线图
 
-见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。下一步是局域网同步:mDNS 发现 + 配对码 + 选择性文件同步。
+见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。局域网同步已在 v0.6.4 落地,下一步是打磨与大曲库实测。
 
 ## 许可
 

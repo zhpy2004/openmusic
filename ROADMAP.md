@@ -24,17 +24,15 @@ First-run wizard (pick folder → scan → batch fill → done) plus whole-libra
 ### v0.6.0 — Localization
 English and Simplified Chinese throughout the app, following the system language by default with a manual override in Settings. Scan problems became typed objects so the service layer no longer builds user-facing sentences.
 
+### v0.6.4 — LAN sync
+The feature this project exists for: **add music and build a playlist on the desktop, then get it on your phone with one tap.** Landed in three parts.
+
+1. **Discovery and pairing** — mDNS advertise/browse for `_openmusic._tcp`; on first connection both ends show a 6-digit code derived from an X25519 key agreement, and every later request is HMAC-signed
+2. **Metadata sync** — one asymmetric round trip merges playlists, favorites, text corrections and play history. Per-row last-write-wins with tombstones, ties broken by device id so both sides independently reach the same result; play history is a union
+3. **Selective file sync** — tick which playlists to "keep files for locally", then compare fingerprint manifests and pull only what's missing, with HTTP Range resume. **The fingerprint is re-computed before a file is allowed to land**, so a corrupted transfer never enters the library. Tracks whose files are missing stay visible and greyed out, with a per-track "fetch from paired device" action
+4. **Safety floor** — **sync never deletes files.** Deletion is a manual, on-device action. Better a duplicate than a lost track
+
 ## In progress
-
-### LAN sync (next milestone)
-
-The feature this project exists for. Goal: **add music and build a playlist on the desktop, then get it on your phone with one tap.**
-
-1. **Discovery** — mDNS advertise/browse for `_openmusic._tcp`
-2. **Pairing** — on first connection both ends show a 6-digit code; after manual confirmation they exchange keys, and subsequent traffic is HTTP + token auth over the LAN
-3. **Metadata sync** — exchange entity manifests (UUID + `updated_at`), merge per-row last-write-wins; play history is a union; playlist definitions sync in full
-4. **Selective file sync** — each device chooses which playlists to "keep files for locally", then compares fingerprint manifests and pulls only what's missing, with HTTP Range resume. Tracks missing files in non-mirrored playlists appear greyed out with a per-track "fetch from paired device" action
-5. **Safety floor** — **sync never deletes files.** Deletion is a manual, on-device action. Better a duplicate than a lost track
 
 ### Polish and release
 
@@ -42,7 +40,7 @@ List and search performance at 10k tracks, first-scan responsiveness on large li
 
 ## Known issues
 
-- **Android: the notification "play" button doesn't resume from pause, and there's no lock screen control.** media_kit (libmpv manages its own audio focus) and audio_service contend for focus on the notification-triggered resume path. In-app playback controls work fine. Fixing it means unifying focus ownership, which needs repeated verification on real hardware.
+- **Android: the notification's play button doesn't resume from pause.** Pause, next and previous all work, as do Bluetooth/media keys and the in-app controls. Traced on a vivo device (Android 16): the press *does* reach the app — a fresh `AudioTrack` is created and starts — but playback is stopped again about 1.4 s later. The system log shows no foreground-service restriction and no audio-focus denial, so the earlier explanation (media_kit and audio_service contending for audio focus) is **unconfirmed**. Pinning it down needs instrumentation of the Dart-side resume path.
 - Scraping sources (iTunes / MusicBrainz) often return Traditional Chinese titles for Simplified Chinese libraries. Mitigated by defaulting "apply text corrections" to off; covers and lyrics still apply. A real fix needs a Simplified/Traditional converter.
 - Batch lyrics fill has no similarity threshold (covers do). LRCLIB matches server-side on title + artist + duration, and lyrics are deletable sidecar files, so the risk is contained.
 - List scrolling and search performance on large libraries (1000+), and Bluetooth headset media keys, are not yet measured.
