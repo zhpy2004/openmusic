@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  audio_service 的通知按钮图标是运行时按名字查的
+  (getResources().getIdentifier("audio_service_play_arrow", ...)),
+  R8 的资源压缩器静态分析看不到这种引用,会把这 7 个 drawable 全部删掉
+  —— 实测 release 包资源表里 drawable 只剩 launch_background 一个,
+  shrinker 报告写明 "audio_service_* is not reachable"。
+
+  后果:通知的 action 拿到图标 id 0,数据齐全但按钮画不出来,
+  整排播放控件在通知栏/锁屏消失(debug 包正常,只有 release 中招)。
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/audio_service_*" />
