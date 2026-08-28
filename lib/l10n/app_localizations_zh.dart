@@ -391,6 +391,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncPeerTooOld => '对方版本不支持同步,请升级 openmusic';
 
   @override
+  String get syncMirrorSection => '在本机保留文件';
+
+  @override
+  String get syncMirrorHint => '勾选的歌单,其音频文件会被下载到本机';
+
+  @override
+  String get syncNoPlaylistsToMirror => '还没有歌单';
+
+  @override
+  String syncDownloading(int index, int total, String name) {
+    return '正在下载 $index/$total · $name';
+  }
+
+  @override
+  String syncFilesDone(int count) {
+    return '已下载 $count 首';
+  }
+
+  @override
+  String syncFilesDoneWithFailures(int count, int failed) {
+    return '已下载 $count 首 · $failed 首失败';
+  }
+
+  @override
+  String get syncFilesCancelled => '已取消下载,已下好的保留';
+
+  @override
+  String get syncFilesNothingToDo => '没有需要下载的文件';
+
+  @override
+  String get syncPeerNoFileSync => '对方版本不支持文件同步,请升级 openmusic';
+
+  @override
+  String get syncFetchThisTrack => '从配对设备获取';
+
+  @override
+  String get syncFetchFailed => '这个文件没能取到';
+
+  @override
   String syncPairingWith(String device) {
     return '与 $device 配对';
   }

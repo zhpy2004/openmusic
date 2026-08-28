@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 import '../data/database.dart';
+import 'file_transfer_plan.dart';
 import 'metadata_merge.dart';
 import 'pair_crypto.dart';
 import 'request_auth.dart';
@@ -54,10 +56,14 @@ class SyncServer {
     required this.trackCount,
     this.onPairRequest,
     this.enableMetadataSyncForTest = true,
+    this.enableFileSyncForTest = true,
   });
 
   /// 仅测试:置 false 可模拟"对端是只有 M3-A 的老版本"(该路径返回 404)。
   final bool enableMetadataSyncForTest;
+
+  /// 仅测试:置 false 可模拟"对端是没有文件同步的老版本"(三个端点返回 404)。
+  final bool enableFileSyncForTest;
 
   static const protocolVersion = 1;
 
@@ -150,6 +156,24 @@ class SyncServer {
           path == '/v1/sync/metadata' &&
           enableMetadataSyncForTest) {
         await _handleMetadataSync(req, body);
+        return;
+      }
+      if (req.method == 'GET' &&
+          path == '/v1/files/manifest' &&
+          enableFileSyncForTest) {
+        await _handleFilesManifest(req, body);
+        return;
+      }
+      if (req.method == 'GET' &&
+          path.startsWith('/v1/file/') &&
+          enableFileSyncForTest) {
+        await _handleFileDownload(req, body, path.substring('/v1/file/'.length));
+        return;
+      }
+      if (req.method == 'GET' &&
+          path.startsWith('/v1/sidecar/') &&
+          enableFileSyncForTest) {
+        await _handleSidecar(req, body, path);
         return;
       }
       await _respond(req, 404, {'error': 'not_found'});
@@ -360,6 +384,133 @@ class SyncServer {
 
     final merged = await db.readSyncSnapshot(deviceId);
     await _respond(req, 200, merged.toJson());
+  }
+
+  /// 本机有文件的曲目清单。
+  ///
+  /// **只列磁盘上真实存在的文件** —— tracks 里有行不等于文件还在(扫描之后
+  /// 用户可能删了文件)。列了却拉不到会让对端的"失败清单"塞满假失败。
+  Future<void> _handleFilesManifest(HttpRequest req, List<int> body) async {
+    if (await _authorize(req, body) != null) return;
+    final all = await db.watchTracks('').first;
+    final manifest = <Map<String, dynamic>>[];
+    for (final t in all) {
+      final f = File(t.path);
+      if (!await f.exists()) continue;
+      manifest.add(
+        RemoteFile(
+          fp: t.fingerprint,
+          name: p.basename(t.path),
+          size: await f.length(),
+          hasCover: await _sidecarFile(t.path, 'cover') != null,
+          hasLyrics: await _sidecarFile(t.path, 'lyrics') != null,
+        ).toJson(),
+      );
+    }
+    await _respondJsonList(req, 200, manifest);
+  }
+
+  /// 音频本体。支持 `Range: bytes=N-` 断点续传。
+  Future<void> _handleFileDownload(
+    HttpRequest req,
+    List<int> body,
+    String fp,
+  ) async {
+    if (await _authorize(req, body) != null) return;
+    final track = await db.trackByFingerprint(fp);
+    if (track == null) {
+      await _respond(req, 404, {'error': 'unknown_fingerprint'});
+      return;
+    }
+    final file = File(track.path);
+    if (!await file.exists()) {
+      await _respond(req, 404, {'error': 'file_gone'});
+      return;
+    }
+    await _sendFile(req, file);
+  }
+
+  /// 封面/歌词伴随文件。没有则 404 —— 这是正常情况,不是错误。
+  Future<void> _handleSidecar(
+    HttpRequest req,
+    List<int> body,
+    String path,
+  ) async {
+    if (await _authorize(req, body) != null) return;
+    final parts = path.split('/'); // ['', 'v1', 'sidecar', fp, kind]
+    if (parts.length != 5) {
+      await _respond(req, 400, {'error': 'bad_request'});
+      return;
+    }
+    final track = await db.trackByFingerprint(parts[3]);
+    if (track == null) {
+      await _respond(req, 404, {'error': 'unknown_fingerprint'});
+      return;
+    }
+    final file = await _sidecarFile(track.path, parts[4]);
+    if (file == null) {
+      await _respond(req, 404, {'error': 'no_sidecar'});
+      return;
+    }
+    await _sendFile(req, file);
+  }
+
+  /// 找同名伴随文件。cover 依次试 .jpg/.png(与 resolveCoverPath 同序),
+  /// lyrics 试 .lrc。都没有返回 null。
+  Future<File?> _sidecarFile(String audioPath, String kind) async {
+    final exts = kind == 'cover'
+        ? const ['.jpg', '.png']
+        : kind == 'lyrics'
+        ? const ['.lrc']
+        : const <String>[];
+    for (final ext in exts) {
+      final f = File(p.setExtension(audioPath, ext));
+      if (await f.exists()) return f;
+    }
+    return null;
+  }
+
+  /// 发送文件,支持 `bytes=N-` 形式的 Range(够用即可:续传只会从某处到结尾)。
+  Future<void> _sendFile(HttpRequest req, File file) async {
+    final total = await file.length();
+    final rangeHeader = req.headers.value(HttpHeaders.rangeHeader);
+    var start = 0;
+    if (rangeHeader != null && rangeHeader.startsWith('bytes=')) {
+      final spec = rangeHeader.substring('bytes='.length);
+      final dash = spec.indexOf('-');
+      if (dash > 0) {
+        start = int.tryParse(spec.substring(0, dash)) ?? 0;
+      }
+    }
+    if (start >= total && total > 0) {
+      req.response.statusCode = HttpStatus.requestedRangeNotSatisfiable;
+      await req.response.close();
+      return;
+    }
+    req.response.statusCode = start > 0 ? HttpStatus.partialContent : HttpStatus.ok;
+    req.response.headers
+      ..contentType = ContentType.binary
+      ..set(HttpHeaders.acceptRangesHeader, 'bytes')
+      ..contentLength = total - start;
+    if (start > 0) {
+      req.response.headers.set(
+        HttpHeaders.contentRangeHeader,
+        'bytes $start-${total - 1}/$total',
+      );
+    }
+    await req.response.addStream(file.openRead(start));
+    await req.response.close();
+  }
+
+  Future<void> _respondJsonList(
+    HttpRequest req,
+    int status,
+    List<Map<String, dynamic>> body,
+  ) async {
+    req.response.statusCode = status;
+    req.response.headers.contentType = ContentType.json;
+    req.response.write(jsonEncode(body));
+    await req.response.close();
   }
 
   Future<void> _respond(

@@ -1,12 +1,32 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
 import '../data/database.dart';
+import '../library/library_setup.dart';
+import '../library/scanner.dart';
+import '../library/tag_reader.dart';
 import 'device_identity.dart';
 import 'discovery.dart';
+import 'file_transfer_plan.dart';
 import 'sync_client.dart';
 import 'sync_server.dart';
+import 'sync_storage.dart';
+
+/// 文件下载进度。null 表示当前没有在下载。
+class FileSyncProgress {
+  const FileSyncProgress({
+    required this.index,
+    required this.total,
+    required this.name,
+  });
+
+  /// 正在下第几个(从 0 起)。
+  final int index;
+  final int total;
+  final String name;
+}
 
 /// 编排同步服务的生命周期与 UI 状态。
 ///
@@ -218,6 +238,117 @@ class SyncController extends ChangeNotifier {
       if (addr != null && addr != oldAddress) return addr;
     }
     return null;
+  }
+
+  /// 文件下载进度;非 null 时 UI 显示进度条与取消按钮。
+  FileSyncProgress? fileProgress;
+
+  bool _cancelFileSync = false;
+  bool get fileSyncCancelled => _cancelFileSync;
+
+  /// UI 上点「取消」。当前这首传完/中断后停止,`.part` 保留供续传。
+  void cancelFileSync() {
+    _cancelFileSync = true;
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setFileProgressForTest(FileSyncProgress? p) {
+    fileProgress = p;
+    if (p == null) _cancelFileSync = false;
+    notifyListeners();
+  }
+
+  /// 拉取镜像歌单里缺的文件。返回结果供 UI 显示摘要。
+  ///
+  /// 步骤:拉对端清单 → 纯函数算差集 → 交给 [syncFilesFor] 下载并扫描。
+  Future<FileSyncResult> syncFiles(String peerDeviceId) async {
+    final c = _client;
+    if (c == null) throw StateError('同步服务未启动');
+
+    final manifest = await runWithPeer(
+      peerDeviceId,
+      (address) =>
+          c.fetchFileManifest(peerDeviceId: peerDeviceId, address: address),
+    );
+
+    final plan = planFileSync(
+      mirroredTrackFps: await db.mirroredTrackFingerprints(),
+      localFps: await _localFingerprintsWithFiles(),
+      remote: manifest,
+    );
+    if (plan.isEmpty) {
+      return FileSyncResult(
+        downloaded: 0,
+        failed: 0,
+        peerMissing: plan.peerMissing,
+        cancelled: false,
+      );
+    }
+
+    final result = await syncFilesFor(peerDeviceId, plan.toDownload);
+    // 差集阶段就知道"对端也没有"的那些,并进最终结果一起报给用户。
+    return FileSyncResult(
+      downloaded: result.downloaded,
+      failed: result.failed,
+      peerMissing: result.peerMissing + plan.peerMissing,
+      cancelled: result.cancelled,
+    );
+  }
+
+  /// 只下载指定的这些文件。[syncFiles] 与「单曲获取」共用它 ——
+  /// 落盘目录、进度上报、取消、**下载后扫描**都在这一处,不重复实现。
+  Future<FileSyncResult> syncFilesFor(
+    String peerDeviceId,
+    List<RemoteFile> files,
+  ) async {
+    final c = _client;
+    if (c == null) throw StateError('同步服务未启动');
+    _cancelFileSync = false;
+    final destDir = Directory(await ensureSyncRoot(db));
+    try {
+      final result = await runWithPeer(
+        peerDeviceId,
+        (address) => c.downloadFiles(
+          peerDeviceId: peerDeviceId,
+          address: address,
+          files: files,
+          destDir: destDir,
+          onFileStart: (i, total, name) {
+            fileProgress = FileSyncProgress(index: i, total: total, name: name);
+            notifyListeners();
+          },
+          shouldCancel: () => _cancelFileSync,
+        ),
+      );
+
+      // **下载了东西就必须扫一遍** —— 否则文件在盘上、tracks 表里没有,
+      // 歌单条目仍然是灰的,用户会以为下载失败。这是"下载成功"到"听得到"
+      // 之间的最后一环,最容易漏。
+      if (result.downloaded > 0) {
+        await runLibraryScan(
+          db: db,
+          scanner: LibraryScanner(db, AudioMetadataTagReader()),
+          onProgress: (_) {},
+          onProblems: (_) {},
+        );
+      }
+      return result;
+    } finally {
+      fileProgress = null;
+      _cancelFileSync = false;
+      notifyListeners();
+    }
+  }
+
+  /// 本机**磁盘上确实有文件**的曲目指纹。tracks 里有行不代表文件还在。
+  Future<Set<String>> _localFingerprintsWithFiles() async {
+    final all = await db.watchTracks('').first;
+    final fps = <String>{};
+    for (final t in all) {
+      if (await File(t.path).exists()) fps.add(t.fingerprint);
+    }
+    return fps;
   }
 
   @override

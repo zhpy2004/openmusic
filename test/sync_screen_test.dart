@@ -210,4 +210,36 @@ void main() {
     );
     expect(offline.onPressed, isNull); // 离线置灰
   });
+
+  testWidgets('已配对设备下显示镜像勾选区,勾选后写入库', (tester) async {
+    await db.upsertPeer(
+      deviceId: 'known',
+      deviceName: '卧室平板',
+      platform: 'android',
+      sharedKey: 'k',
+    );
+    final uuid = await db.createPlaylist('开车');
+    await pumpScreen(tester);
+    await tester.pump();
+
+    expect(find.text('在本机保留文件'), findsOneWidget);
+    expect(find.text('开车'), findsOneWidget);
+    expect(await db.mirroredPlaylistUuids(), isEmpty);
+
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pump();
+    expect(await db.mirroredPlaylistUuids(), {uuid});
+  });
+
+  testWidgets('下载进行中显示进度与取消按钮', (tester) async {
+    await pumpScreen(tester);
+    controller.setFileProgressForTest(
+      const FileSyncProgress(index: 2, total: 5, name: '及时雨.mp3'),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('正在下载'), findsOneWidget);
+    expect(find.textContaining('及时雨.mp3'), findsOneWidget);
+    expect(find.text('取消'), findsOneWidget);
+  });
 }

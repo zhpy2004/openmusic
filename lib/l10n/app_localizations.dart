@@ -770,6 +770,72 @@ abstract class AppLocalizations {
   /// **'The other device doesn\'t support syncing — please update openmusic'**
   String get syncPeerTooOld;
 
+  /// No description provided for @syncMirrorSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep files on this device'**
+  String get syncMirrorSection;
+
+  /// No description provided for @syncMirrorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked playlists have their audio files downloaded here'**
+  String get syncMirrorHint;
+
+  /// No description provided for @syncNoPlaylistsToMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlists yet'**
+  String get syncNoPlaylistsToMirror;
+
+  /// No description provided for @syncDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {index}/{total} · {name}'**
+  String syncDownloading(int index, int total, String name);
+
+  /// No description provided for @syncFilesDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded {count, plural, =1{1 file} other{{count} files}}'**
+  String syncFilesDone(int count);
+
+  /// No description provided for @syncFilesDoneWithFailures.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded {count} · {failed} failed'**
+  String syncFilesDoneWithFailures(int count, int failed);
+
+  /// No description provided for @syncFilesCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Download cancelled — already downloaded files are kept'**
+  String get syncFilesCancelled;
+
+  /// No description provided for @syncFilesNothingToDo.
+  ///
+  /// In en, this message translates to:
+  /// **'No files to download'**
+  String get syncFilesNothingToDo;
+
+  /// No description provided for @syncPeerNoFileSync.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device doesn\'t support file sync — please update openmusic'**
+  String get syncPeerNoFileSync;
+
+  /// No description provided for @syncFetchThisTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Get from paired device'**
+  String get syncFetchThisTrack;
+
+  /// No description provided for @syncFetchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get this file'**
+  String get syncFetchFailed;
+
   /// No description provided for @syncPairingWith.
   ///
   /// In en, this message translates to:

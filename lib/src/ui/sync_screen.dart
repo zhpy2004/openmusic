@@ -93,6 +93,8 @@ class SyncScreen extends ConsumerWidget {
       body: ListView(
         children: [
           _localCard(context, l10n, controller),
+          if (controller.fileProgress != null)
+            _downloadProgress(context, l10n, controller),
           const Divider(),
           ListTile(
             dense: true,
@@ -103,8 +105,10 @@ class SyncScreen extends ConsumerWidget {
           ),
           if (paired.isEmpty)
             ListTile(dense: true, title: Text(l10n.syncNoPaired))
-          else
+          else ...[
             ...paired.map((p) => _pairedTile(context, l10n, ref, controller, p)),
+            _mirrorSection(context, l10n, ref),
+          ],
           const Divider(),
           ListTile(
             dense: true,
@@ -187,6 +191,59 @@ class SyncScreen extends ConsumerWidget {
             onPressed: () => _unpair(context, l10n, ref, peer),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 「在本机保留文件」的歌单勾选。**这是本机偏好,不跨设备同步**
+  /// (手机要哪几个歌单是手机自己的事)。
+  Widget _mirrorSection(
+    BuildContext context,
+    AppLocalizations l10n,
+    WidgetRef ref,
+  ) {
+    final playlists = ref.watch(playlistsProvider).value ?? const [];
+    final mirrored = ref.watch(mirroredPlaylistsProvider).value ?? const <String>{};
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ListTile(
+          dense: true,
+          title: Text(
+            l10n.syncMirrorSection,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(l10n.syncMirrorHint),
+        ),
+        if (playlists.isEmpty)
+          ListTile(dense: true, title: Text(l10n.syncNoPlaylistsToMirror))
+        else
+          ...playlists.map(
+            (pl) => CheckboxListTile(
+              dense: true,
+              value: mirrored.contains(pl.uuid),
+              title: Text(pl.name),
+              onChanged: (v) => ref
+                  .read(databaseProvider)
+                  .setPlaylistMirrored(pl.uuid, v ?? false),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _downloadProgress(
+    BuildContext context,
+    AppLocalizations l10n,
+    SyncController controller,
+  ) {
+    final p = controller.fileProgress!;
+    return ListTile(
+      leading: const CircularProgressIndicator(),
+      title: Text(l10n.syncDownloading(p.index + 1, p.total, p.name)),
+      trailing: TextButton(
+        onPressed: controller.cancelFileSync,
+        child: Text(l10n.cancel),
       ),
     );
   }
@@ -407,6 +464,28 @@ class SyncScreen extends ConsumerWidget {
           ),
         ),
       );
+
+      // 元数据同步完成的这一刻,正好知道"哪些歌缺文件" —— 接着拉文件。
+      try {
+        final f = await controller.syncFiles(peer.deviceId);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              f.cancelled
+                  ? l10n.syncFilesCancelled
+                  : f.isEmpty
+                  ? l10n.syncFilesNothingToDo
+                  : f.failed > 0
+                  ? l10n.syncFilesDoneWithFailures(f.downloaded, f.failed)
+                  : l10n.syncFilesDone(f.downloaded),
+            ),
+          ),
+        );
+      } on SyncUnsupportedException {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.syncPeerNoFileSync)),
+        );
+      }
     } on SyncUnsupportedException {
       messenger.showSnackBar(SnackBar(content: Text(l10n.syncPeerTooOld)));
     } on SyncAuthException catch (e) {

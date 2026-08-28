@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 
 import '../data/database.dart';
+import 'file_downloader.dart';
+import 'file_transfer_plan.dart';
 import 'metadata_merge.dart';
 import 'pair_crypto.dart';
 import 'request_auth.dart';
@@ -56,6 +60,25 @@ class SyncSummary {
       favorites == 0 &&
       overrides == 0 &&
       playEvents == 0;
+}
+
+/// 一轮文件下载的结果。
+class FileSyncResult {
+  const FileSyncResult({
+    required this.downloaded,
+    required this.failed,
+    required this.peerMissing,
+    required this.cancelled,
+  });
+
+  final int downloaded;
+  final int failed;
+
+  /// 对端也没有的文件数 —— 不算失败。
+  final int peerMissing;
+  final bool cancelled;
+
+  bool get isEmpty => downloaded == 0 && failed == 0 && peerMissing == 0;
 }
 
 /// `/v1/hello` 的响应。
@@ -269,5 +292,155 @@ class SyncClient {
       overrides: result.overrides.length,
       playEvents: result.playEvents.length,
     );
+  }
+
+  /// 取对端的文件清单。对端是老版本(没有该端点)时抛 [SyncUnsupportedException]。
+  Future<List<RemoteFile>> fetchFileManifest({
+    required String peerDeviceId,
+    String? address,
+  }) async {
+    final res = await _signedGet(
+      peerDeviceId: peerDeviceId,
+      address: address,
+      path: '/v1/files/manifest',
+    );
+    if (res.statusCode == 404) throw const SyncUnsupportedException();
+    if (res.statusCode == 401) {
+      final reason = jsonDecode(res.body)['reason'] as String? ?? 'unknown';
+      throw SyncAuthException(reason);
+    }
+    if (res.statusCode != 200) {
+      throw SyncTransportException('对端返回 ${res.statusCode}');
+    }
+    final list = jsonDecode(utf8.decode(res.bodyBytes)) as List;
+    return [
+      for (final e in list) RemoteFile.fromJson(e as Map<String, dynamic>),
+    ];
+  }
+
+  /// 逐首下载。**串行**:局域网带宽不是瓶颈,串行让进度与取消都简单,
+  /// 也不会把手机 IO 打满。单首失败记录后继续下一首,不自动重试。
+  Future<FileSyncResult> downloadFiles({
+    required String peerDeviceId,
+    required List<RemoteFile> files,
+    required Directory destDir,
+    String? address,
+    void Function(int index, int total, String name)? onFileStart,
+    void Function(int received, int total)? onProgress,
+    bool Function()? shouldCancel,
+  }) async {
+    if (files.isEmpty) {
+      return const FileSyncResult(
+        downloaded: 0,
+        failed: 0,
+        peerMissing: 0,
+        cancelled: false,
+      );
+    }
+    final peer = await db.getPeer(peerDeviceId);
+    if (peer == null) throw StateError('设备 $peerDeviceId 尚未配对');
+    final target = address ?? peer.lastAddress;
+    if (target == null) {
+      throw StateError('设备 $peerDeviceId 没有可用地址(未在局域网中发现)');
+    }
+    final key = base64.decode(peer.sharedKey);
+    Future<Map<String, String>> signer(String method, String path) =>
+        signHeaders(
+          deviceId: deviceId,
+          sharedKey: key,
+          method: method,
+          path: path,
+          body: const [],
+        );
+
+    final downloader = FileDownloader(httpClient: _http, dir: destDir);
+    var downloaded = 0;
+    var failed = 0;
+    var peerMissing = 0;
+    var cancelled = false;
+
+    for (var i = 0; i < files.length; i++) {
+      if (shouldCancel?.call() ?? false) {
+        cancelled = true;
+        break;
+      }
+      final f = files[i];
+      onFileStart?.call(i, files.length, f.name);
+      final r = await downloader.download(
+        url: 'http://$target/v1/file/${f.fp}',
+        fileName: f.name,
+        expectedFp: f.fp,
+        sign: signer,
+        onProgress: onProgress,
+        shouldCancel: shouldCancel,
+      );
+      // download() 本身也会在流式接收中途看到 shouldCancel() 变 true 就掐断
+      // 连接(见 file_downloader.dart),那种情况下 r.outcome 是 failed,但
+      // 语义上是"取消"而非真失败 —— 这里补上判断,避免用户点了取消却在
+      // 结果里看到一条虚假的失败。
+      final cancelledDuringThisFile = shouldCancel?.call() ?? false;
+      switch (r.outcome) {
+        case DownloadOutcome.saved:
+          downloaded++;
+          // sidecar 跟着音频走:文本修正在 M3-B 已同步,只搬文字不搬封面歌词
+          // 会造成"标题修好了、封面歌词还没有"的割裂。
+          final base = r.savedPath!;
+          if (f.hasCover) {
+            await downloader.downloadSidecar(
+              url: 'http://$target/v1/sidecar/${f.fp}/cover',
+              destPath: p.setExtension(base, '.jpg'),
+              sign: signer,
+            );
+          }
+          if (f.hasLyrics) {
+            await downloader.downloadSidecar(
+              url: 'http://$target/v1/sidecar/${f.fp}/lyrics',
+              destPath: p.setExtension(base, '.lrc'),
+              sign: signer,
+            );
+          }
+        case DownloadOutcome.peerMissing:
+          peerMissing++;
+        case DownloadOutcome.checksumFailed:
+          failed++;
+        case DownloadOutcome.failed:
+          if (!cancelledDuringThisFile) failed++;
+      }
+      if (cancelledDuringThisFile) {
+        cancelled = true;
+        break;
+      }
+    }
+
+    return FileSyncResult(
+      downloaded: downloaded,
+      failed: failed,
+      peerMissing: peerMissing,
+      cancelled: cancelled,
+    );
+  }
+
+  /// 带签名的 GET —— 三个文件端点共用。
+  Future<http.Response> _signedGet({
+    required String peerDeviceId,
+    required String path,
+    String? address,
+  }) async {
+    final peer = await db.getPeer(peerDeviceId);
+    if (peer == null) throw StateError('设备 $peerDeviceId 尚未配对');
+    final target = address ?? peer.lastAddress;
+    if (target == null) {
+      throw StateError('设备 $peerDeviceId 没有可用地址(未在局域网中发现)');
+    }
+    final headers = await signHeaders(
+      deviceId: deviceId,
+      sharedKey: base64.decode(peer.sharedKey),
+      method: 'GET',
+      path: path,
+      body: const [],
+    );
+    return _http
+        .get(Uri.parse('http://$target$path'), headers: headers)
+        .timeout(requestTimeout);
   }
 }

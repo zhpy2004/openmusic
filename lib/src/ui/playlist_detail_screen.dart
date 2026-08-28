@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import '../../l10n/app_localizations.dart';
 import '../app/providers.dart';
 import '../library/m3u8.dart';
+import 'fetch_single_track.dart';
 import 'now_playing_bar.dart';
 import 'scrape_screen.dart';
 
@@ -136,35 +137,39 @@ class PlaylistDetailScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: t == null ? Text(it.fp) : Text(t.artist),
-                    trailing: PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert),
-                      onSelected: (v) {
-                        if (v == 'remove') {
-                          ref
-                              .read(databaseProvider)
-                              .removeFromPlaylist(uuid, it.fp);
-                        }
-                        if (v == 'scrape' && t != null) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ScrapeScreen(track: t),
-                            ),
-                          );
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          value: 'remove',
-                          child: Text(l10n.remove),
-                        ),
-                        // 缺失曲目没有 tracks 行,无从刮削
-                        if (t != null)
-                          PopupMenuItem(
-                            value: 'scrape',
-                            child: Text(l10n.scrape),
+                    trailing: t == null
+                        ? IconButton(
+                            icon: const Icon(Icons.download_for_offline),
+                            tooltip: l10n.syncFetchThisTrack,
+                            onPressed: () => fetchSingleTrack(context, ref, it.fp),
+                          )
+                        : PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (v) {
+                              if (v == 'remove') {
+                                ref
+                                    .read(databaseProvider)
+                                    .removeFromPlaylist(uuid, it.fp);
+                              }
+                              if (v == 'scrape') {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ScrapeScreen(track: t),
+                                  ),
+                                );
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                value: 'remove',
+                                child: Text(l10n.remove),
+                              ),
+                              PopupMenuItem(
+                                value: 'scrape',
+                                child: Text(l10n.scrape),
+                              ),
+                            ],
                           ),
-                      ],
-                    ),
                     onTap: t == null
                         ? null
                         : () {

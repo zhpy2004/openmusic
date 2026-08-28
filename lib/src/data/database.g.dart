@@ -3641,6 +3641,282 @@ class PeersCompanion extends UpdateCompanion<Peer> {
   }
 }
 
+class $MirroredPlaylistsTable extends MirroredPlaylists
+    with TableInfo<$MirroredPlaylistsTable, MirroredPlaylist> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MirroredPlaylistsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _playlistUuidMeta = const VerificationMeta(
+    'playlistUuid',
+  );
+  @override
+  late final GeneratedColumn<String> playlistUuid = GeneratedColumn<String>(
+    'playlist_uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [playlistUuid, updatedAt, deleted];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mirrored_playlists';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MirroredPlaylist> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('playlist_uuid')) {
+      context.handle(
+        _playlistUuidMeta,
+        playlistUuid.isAcceptableOrUnknown(
+          data['playlist_uuid']!,
+          _playlistUuidMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_playlistUuidMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {playlistUuid};
+  @override
+  MirroredPlaylist map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MirroredPlaylist(
+      playlistUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}playlist_uuid'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $MirroredPlaylistsTable createAlias(String alias) {
+    return $MirroredPlaylistsTable(attachedDatabase, alias);
+  }
+}
+
+class MirroredPlaylist extends DataClass
+    implements Insertable<MirroredPlaylist> {
+  final String playlistUuid;
+  final int updatedAt;
+  final bool deleted;
+  const MirroredPlaylist({
+    required this.playlistUuid,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['playlist_uuid'] = Variable<String>(playlistUuid);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  MirroredPlaylistsCompanion toCompanion(bool nullToAbsent) {
+    return MirroredPlaylistsCompanion(
+      playlistUuid: Value(playlistUuid),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory MirroredPlaylist.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MirroredPlaylist(
+      playlistUuid: serializer.fromJson<String>(json['playlistUuid']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'playlistUuid': serializer.toJson<String>(playlistUuid),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  MirroredPlaylist copyWith({
+    String? playlistUuid,
+    int? updatedAt,
+    bool? deleted,
+  }) => MirroredPlaylist(
+    playlistUuid: playlistUuid ?? this.playlistUuid,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  MirroredPlaylist copyWithCompanion(MirroredPlaylistsCompanion data) {
+    return MirroredPlaylist(
+      playlistUuid: data.playlistUuid.present
+          ? data.playlistUuid.value
+          : this.playlistUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MirroredPlaylist(')
+          ..write('playlistUuid: $playlistUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(playlistUuid, updatedAt, deleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MirroredPlaylist &&
+          other.playlistUuid == this.playlistUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class MirroredPlaylistsCompanion extends UpdateCompanion<MirroredPlaylist> {
+  final Value<String> playlistUuid;
+  final Value<int> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const MirroredPlaylistsCompanion({
+    this.playlistUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MirroredPlaylistsCompanion.insert({
+    required String playlistUuid,
+    required int updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : playlistUuid = Value(playlistUuid),
+       updatedAt = Value(updatedAt);
+  static Insertable<MirroredPlaylist> custom({
+    Expression<String>? playlistUuid,
+    Expression<int>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (playlistUuid != null) 'playlist_uuid': playlistUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MirroredPlaylistsCompanion copyWith({
+    Value<String>? playlistUuid,
+    Value<int>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return MirroredPlaylistsCompanion(
+      playlistUuid: playlistUuid ?? this.playlistUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (playlistUuid.present) {
+      map['playlist_uuid'] = Variable<String>(playlistUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MirroredPlaylistsCompanion(')
+          ..write('playlistUuid: $playlistUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3654,6 +3930,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $LocalDeviceTable localDevice = $LocalDeviceTable(this);
   late final $PeersTable peers = $PeersTable(this);
+  late final $MirroredPlaylistsTable mirroredPlaylists =
+      $MirroredPlaylistsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3669,6 +3947,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appSettings,
     localDevice,
     peers,
+    mirroredPlaylists,
   ];
 }
 
@@ -5635,6 +5914,183 @@ typedef $$PeersTableProcessedTableManager =
       Peer,
       PrefetchHooks Function()
     >;
+typedef $$MirroredPlaylistsTableCreateCompanionBuilder =
+    MirroredPlaylistsCompanion Function({
+      required String playlistUuid,
+      required int updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$MirroredPlaylistsTableUpdateCompanionBuilder =
+    MirroredPlaylistsCompanion Function({
+      Value<String> playlistUuid,
+      Value<int> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$MirroredPlaylistsTableFilterComposer
+    extends Composer<_$AppDatabase, $MirroredPlaylistsTable> {
+  $$MirroredPlaylistsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get playlistUuid => $composableBuilder(
+    column: $table.playlistUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MirroredPlaylistsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MirroredPlaylistsTable> {
+  $$MirroredPlaylistsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get playlistUuid => $composableBuilder(
+    column: $table.playlistUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MirroredPlaylistsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MirroredPlaylistsTable> {
+  $$MirroredPlaylistsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get playlistUuid => $composableBuilder(
+    column: $table.playlistUuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$MirroredPlaylistsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MirroredPlaylistsTable,
+          MirroredPlaylist,
+          $$MirroredPlaylistsTableFilterComposer,
+          $$MirroredPlaylistsTableOrderingComposer,
+          $$MirroredPlaylistsTableAnnotationComposer,
+          $$MirroredPlaylistsTableCreateCompanionBuilder,
+          $$MirroredPlaylistsTableUpdateCompanionBuilder,
+          (
+            MirroredPlaylist,
+            BaseReferences<
+              _$AppDatabase,
+              $MirroredPlaylistsTable,
+              MirroredPlaylist
+            >,
+          ),
+          MirroredPlaylist,
+          PrefetchHooks Function()
+        > {
+  $$MirroredPlaylistsTableTableManager(
+    _$AppDatabase db,
+    $MirroredPlaylistsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MirroredPlaylistsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MirroredPlaylistsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MirroredPlaylistsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> playlistUuid = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MirroredPlaylistsCompanion(
+                playlistUuid: playlistUuid,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String playlistUuid,
+                required int updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MirroredPlaylistsCompanion.insert(
+                playlistUuid: playlistUuid,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MirroredPlaylistsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MirroredPlaylistsTable,
+      MirroredPlaylist,
+      $$MirroredPlaylistsTableFilterComposer,
+      $$MirroredPlaylistsTableOrderingComposer,
+      $$MirroredPlaylistsTableAnnotationComposer,
+      $$MirroredPlaylistsTableCreateCompanionBuilder,
+      $$MirroredPlaylistsTableUpdateCompanionBuilder,
+      (
+        MirroredPlaylist,
+        BaseReferences<
+          _$AppDatabase,
+          $MirroredPlaylistsTable,
+          MirroredPlaylist
+        >,
+      ),
+      MirroredPlaylist,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5659,4 +6115,6 @@ class $AppDatabaseManager {
       $$LocalDeviceTableTableManager(_db, _db.localDevice);
   $$PeersTableTableManager get peers =>
       $$PeersTableTableManager(_db, _db.peers);
+  $$MirroredPlaylistsTableTableManager get mirroredPlaylists =>
+      $$MirroredPlaylistsTableTableManager(_db, _db.mirroredPlaylists);
 }

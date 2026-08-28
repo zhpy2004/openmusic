@@ -160,6 +160,11 @@ final pairedPeersProvider = StreamProvider<List<Peer>>(
   (ref) => ref.watch(databaseProvider).watchPeers(),
 );
 
+/// 已勾选「在本机保留文件」的歌单 uuid。
+final mirroredPlaylistsProvider = StreamProvider<Set<String>>(
+  (ref) => ref.watch(databaseProvider).watchMirroredPlaylistUuids(),
+);
+
 /// 语言偏好的存储键。取值:'system'(默认)/ 'zh' / 'en'。
 const kLocalePrefKey = 'locale';
 
