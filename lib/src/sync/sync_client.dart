@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
@@ -403,8 +404,16 @@ class SyncClient {
           peerMissing++;
         case DownloadOutcome.checksumFailed:
           failed++;
+          // 指纹对不上意味着传输过程中内容变了(或对端文件在传输中被改动),
+          // 不留痕的话这首歌会"莫名其妙取不到"且无从查起。
+          debugPrint('[sync] 指纹校验失败,已丢弃: ${f.name} (${f.fp})');
         case DownloadOutcome.failed:
-          if (!cancelledDuringThisFile) failed++;
+          if (!cancelledDuringThisFile) {
+            failed++;
+            // 失败原因原本只存进 DownloadResult.error 就被丢掉了 —— 用户只看到
+            // 一句"没能取到",连是超时、断连还是磁盘满都分不出来。
+            debugPrint('[sync] 下载失败: ${f.name} — ${r.error}');
+          }
       }
       if (cancelledDuringThisFile) {
         cancelled = true;

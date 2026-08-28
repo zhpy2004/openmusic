@@ -33,7 +33,8 @@ Future<void> fetchSingleTrack(
       if (match.isEmpty) continue; // 这台没有,试下一台
       final result = await controller.syncFilesFor(peer.deviceId, match);
       if (result.downloaded > 0) return; // 成功,直接结束
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[sync] 从 ${peer.deviceName} 取 $fp 出错: $e');
       continue; // 这台不行就试下一台
     }
   }
