@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openmusic/src/app/providers.dart';
+import 'package:openmusic/src/library/cover_art.dart';
 
 void main() {
   late Directory dir;
