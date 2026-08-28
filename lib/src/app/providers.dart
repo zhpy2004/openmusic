@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../data/database.dart';
+import '../library/cover_art.dart';
 import '../library/scanner.dart';
 import '../library/tag_reader.dart';
 import '../lyrics/lrc.dart';
@@ -88,16 +89,6 @@ final favoritesProvider = StreamProvider<List<String>>(
 final isFavoriteProvider = StreamProvider.autoDispose.family<bool, String>(
   (ref, fp) => ref.watch(databaseProvider).watchIsFavorite(fp),
 );
-
-/// 解析曲目封面的伴随文件路径:同名 .jpg 优先,其次 .png;都没有返回 null。
-/// (内嵌封面的读取留到后续增强——M2-B 的封面来源是刮削写下的伴随文件。)
-Future<String?> resolveCoverPath(String audioPath) async {
-  for (final ext in const ['.jpg', '.png']) {
-    final candidate = p.setExtension(audioPath, ext);
-    if (await File(candidate).exists()) return candidate;
-  }
-  return null;
-}
 
 /// 单曲封面路径;autoDispose.family:列表滚动/页面关闭即释放。
 final coverArtProvider = FutureProvider.autoDispose.family<String?, String>(
