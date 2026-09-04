@@ -61,10 +61,13 @@ class PlaybackController extends ChangeNotifier {
   ///
   /// 是启发式信号,非精确的"本曲播放完成"事件(AudioEngine 未暴露该事件,
   /// media_kit 虽有 completed 流,但引入需扩展引擎接口,超出本次改动范围)。
-  /// 已知两处误差,均只影响 SMTC 悬浮窗文案、不影响实际播放/按键:
+  /// 已知三处误差,均只影响 SMTC 悬浮窗文案、不影响实际播放/按键:
   /// - 用户在末曲手动暂停(还没放完)也会判定为"已播完";
   /// - 起播单曲队列的一瞬间(index 先到位、playingStream 的 true 事件后到)
-  ///   会有 <100ms 的误判窗口,playingStream 触发后立刻纠正。
+  ///   会有 <100ms 的误判窗口,playingStream 触发后立刻纠正;
+  /// - 开启随机播放时,_index 指向"原始队列顺序"中的位置(per media_kit_engine.dart),
+  ///   而非实际随机播放顺序,若在随机序列中途暂停"碰巧排在原始队列末尾"的曲目,
+  ///   会误判为"已播完"。
   bool get queueFinished =>
       !_playing &&
       _repeatMode == RepeatMode.off &&
