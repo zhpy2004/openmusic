@@ -80,7 +80,7 @@ List<int> readPcmSamples(File f) {
 }
 
 /// 过零率:每个采样点符号变化的比例,粗略反映频率高低,足够区分本工具
-/// 生成的 440Hz/880Hz 两种测试音,不需要引入 FFT 依赖。
+/// 生成的 440Hz/1760Hz 两种测试音,不需要引入 FFT 依赖。
 double zeroCrossingRate(List<int> samples) {
   if (samples.length < 2) return 0;
   var crossings = 0;

@@ -3,7 +3,8 @@ import 'dart:io';
 import 'gen_gapless_tracks.dart' show readPcmSamples, zeroCrossingRate;
 
 /// 分析一段真机录制的 gapless 播放录音(WAV,16-bit PCM),寻找 440Hz→1760Hz
-/// 的频率跳变点(即两首测试音轨的边界),报告边界附近是否存在:
+/// (见 gen_gapless_tracks.dart)的频率跳变点(即两首测试音轨的边界),
+/// 报告边界附近是否存在:
 /// - 静音间隙(gap):边界前后有一段采样点全接近 0
 /// - 波形突变(疑似爆音):相邻采样点振幅跳变异常大
 ///
