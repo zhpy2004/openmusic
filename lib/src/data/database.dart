@@ -299,13 +299,23 @@ class AppDatabase extends _$AppDatabase {
         (t) => OrderingTerm(expression: t.title.collate(Collate.noCase)),
       ]);
     if (query.trim().isNotEmpty) {
-      final like = '%${query.trim()}%';
+      final like = '%${_escapeLike(query.trim())}%';
       q.where(
-        (t) => t.title.like(like) | t.artist.like(like) | t.album.like(like),
+        (t) =>
+            t.title.like(like, escapeChar: r'\') |
+            t.artist.like(like, escapeChar: r'\') |
+            t.album.like(like, escapeChar: r'\'),
       );
     }
     return q.watch();
   }
+
+  /// LIKE 模式里的 %、_ 是通配符,反斜杠是转义符本身——三者在用户输入里
+  /// 都可能出现(百分号/下划线常见于曲名,反斜杠少见但不能不防)。
+  static String _escapeLike(String raw) => raw
+      .replaceAll(r'\', r'\\')
+      .replaceAll('%', r'\%')
+      .replaceAll('_', r'\_');
 
   /// 增量扫描用：path → (mtimeMs, sizeBytes)
   Future<Map<String, ({int mtimeMs, int sizeBytes})>> pathIndex() async {

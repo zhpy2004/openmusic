@@ -72,6 +72,29 @@ void main() {
     expect((await db.watchTracks('不存在').first), isEmpty);
   });
 
+  test('搜索关键字里的 % 和 _ 按字面匹配,不当通配符', () async {
+    await db.upsertTrack(
+      TracksCompanion.insert(
+        path: '/m/a.mp3',
+        fingerprint: 'fp-a',
+        title: '100% Pure',
+        sizeBytes: 1,
+        mtimeMs: 1,
+      ),
+    );
+    await db.upsertTrack(
+      TracksCompanion.insert(
+        path: '/m/b.mp3',
+        fingerprint: 'fp-b',
+        title: '100X Pure', // % 若被当通配符,这行也会被 "100% Pure" 的查询命中
+        sizeBytes: 1,
+        mtimeMs: 1,
+      ),
+    );
+    final results = await db.watchTracks('100% Pure').first;
+    expect(results.map((t) => t.title).toList(), ['100% Pure']);
+  });
+
   test('pathIndex 返回 path→(mtimeMs,sizeBytes) 映射', () async {
     await db.upsertTrack(track('/m/a.mp3'));
     final idx = await db.pathIndex();
