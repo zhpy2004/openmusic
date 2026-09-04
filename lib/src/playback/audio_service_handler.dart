@@ -84,7 +84,14 @@ class OpenmusicAudioHandler extends BaseAudioHandler with SeekHandler {
   @override
   Future<void> skipToPrevious() => _engine.previous();
   @override
-  Future<void> seek(Duration position) => _engine.seek(position);
+  Future<void> seek(Duration position) async {
+    await _engine.seek(position);
+    // 上面 positionStream 的 distinct 节流是按「与上一次已广播值」的差值判断的,
+    // 用户主动拖动通知栏/锁屏进度条这种不连续跳变(哪怕跳变本身小于 800ms 阈值)
+    // 不该被当成连续播放的位置漂移吞掉——这里立刻补发一版,让节流只管漂移、
+    // 不管这种主动 seek。
+    playbackState.add(playbackState.value.copyWith(updatePosition: position));
+  }
   @override
   Future<void> stop() => _engine.pause();
 }

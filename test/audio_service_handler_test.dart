@@ -38,10 +38,16 @@ void main() {
     }
     await Future<void>.delayed(Duration.zero);
 
+    // 精确上界:实测 50 次 tick(0ms..980ms,20ms 间隔)在 800ms 阈值下只应
+    // 产生 3 次广播——1 次是 playTracks 里 play() 异步落地触发的 playingStream
+    // 广播(位置仍是初始的 0),1 次是 distinct 对第一个原始 tick(0ms)必然放行,
+    // 最后 1 次是累计位置跨过 800ms 阈值时(980ms 跨度 / 800ms 阈值,只够跨一次)。
+    // 用 lessThanOrEqualTo(3) 而不是 lessThan(50),这样节流间隔被意外改小
+    // (比如变成每隔一个 tick 或 100ms 阈值)时测试才会真的失败。
     expect(
       emissions.length,
-      lessThan(50),
-      reason: '50 次 position tick 不该产生 50 次 playbackState 广播',
+      lessThanOrEqualTo(3),
+      reason: '50 次 position tick 在 800ms 节流阈值下最多应产生 3 次广播',
     );
 
     await sub.cancel();
