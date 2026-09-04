@@ -128,6 +128,28 @@ void main() {
     expect(all.single.title, 'a.mp3');
   });
 
+  test('先以 [父目录, 父目录/sub] 两个重叠 root 扫描,之后移除父目录 root '
+      '只剩 sub:sub 下曲目应保留,父目录下(sub 之外)的曲目应被清理', () async {
+    write('a.mp3'); // 父目录直属,不在 sub 下
+    write('sub/b.flac'); // 在 sub 下
+
+    // 首扫:两个 root 都在
+    await scanner.scan([tmp.path, '${tmp.path}/sub']).drain<void>();
+    var all = await db.watchTracks('').first;
+    expect(all.map((t) => t.title).toSet(), {'a.mp3', 'b.flac'});
+
+    // 移除父目录 root,只剩 sub
+    final events = await scanner.scan(['${tmp.path}/sub']).toList();
+
+    all = await db.watchTracks('').first;
+    expect(
+      all.map((t) => t.title).toSet(),
+      {'b.flac'},
+      reason: 'sub 下曲目应保留;父目录下、sub 之外的 a.mp3 应随 root 移除被清理',
+    );
+    expect(events.last.problems, isEmpty); // 主动移除 root 不是"不可达",不该记问题
+  });
+
   test('增量重扫进度：250 文件全跳过时进度流仍周期上报', () async {
     for (var i = 0; i < 250; i++) {
       write('t$i.mp3');
