@@ -36,7 +36,7 @@ void main() {
     final zcr2 = gen.zeroCrossingRate(s2.take(400).toList());
     expect(
       (zcr1 - zcr2).abs(),
-      greaterThan(0.02),
+      greaterThan(0.04),
       reason: '两首末尾/开头的频率应明显不同,否则录音分析脚本定位不到边界',
     );
   });
