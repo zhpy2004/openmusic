@@ -32,9 +32,17 @@ class OpenmusicAudioHandler extends BaseAudioHandler with SeekHandler {
         ),
       );
     });
-    _engine.positionStream.listen((pos) {
-      playbackState.add(playbackState.value.copyWith(updatePosition: pos));
-    });
+    // 位置外推:audio_service 的 PlaybackState.updatePosition + updateTime
+    // 本就是设计给客户端按时间自行外推播放位置用的,不需要应用侧每个 tick
+    // 都全量重发一份新 PlaybackState——那样通知栏刷新频率会跟着 position
+    // 流(通常每秒多次甚至更高频)走。这里用 distinct 把连续两次实际广播
+    // 之间的位置差限制在 800ms 以上,相当于把有效更新频率收敛到约 1 次/秒,
+    // 足够通知栏/锁屏进度条平滑,又不必引入额外的 Timer/节流依赖。
+    _engine.positionStream
+        .distinct((a, b) => (a - b).abs() < const Duration(milliseconds: 800))
+        .listen((pos) {
+          playbackState.add(playbackState.value.copyWith(updatePosition: pos));
+        });
     _controller.addListener(() {
       final t = _controller.currentTrack;
       if (t == null || t.path == _publishedPath) return;
