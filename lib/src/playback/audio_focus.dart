@@ -15,7 +15,11 @@ Future<void> initAudioFocus(PlaybackController controller) async {
   // 开始播放时主动声明持有焦点;暂停/停止不主动 abandon——与应用内
   // 暂停后仍可能被通知栏/蓝牙键恢复的场景一致,过早交出焦点反而添乱。
   controller.engine.playingStream.listen((playing) {
-    if (playing) unawaited(session.setActive(true));
+    if (playing) {
+      // setActive 是 platform channel 调用,某些设备可能抛异常,best-effort:
+      // 不让未观测的异步错误冒泡(焦点失败不该中断播放)。
+      unawaited(session.setActive(true).catchError((Object _) => true));
+    }
   });
 
   session.interruptionEventStream.listen((event) {

@@ -42,6 +42,7 @@ dependencies:
   xxh3: ^1.2.0
   audio_service: ^0.18.15
   smtc_windows: ^1.1.0
+  audio_session: ^0.2.4
   # 精确钉版:smtc_windows 1.1.0 内置绑定用 frb 2.11.1 codegen,而它的约束 ^2.11.1
   # 会让 pub 解析到 2.12.0;frb 运行时强制 codegen==runtime,否则 RustLib.init()
   # 抛 "Bad state: codegen version (2.11.1) should be the same as runtime (2.12.0)"
@@ -64,7 +65,6 @@ dependencies:
   # mDNS 服务广播 + 发现(_openmusic._tcp)。Dart 官方 multicast_dns 只能查询、
   # 不能注册服务,做不了广播,故用插件。只被 bonsoir_discovery.dart 引用。
   bonsoir: ^7.1.4
-  audio_session: ^0.2.4
 
 dev_dependencies:
   flutter_test:
