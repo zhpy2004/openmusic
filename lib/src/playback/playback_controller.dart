@@ -55,6 +55,22 @@ class PlaybackController extends ChangeNotifier {
   Track? get currentTrack =>
       (_index >= 0 && _index < _queue.length) ? _queue[_index] : null;
 
+  /// 队列是否已"播完停下"(非循环、放到末曲且未在播放)。
+  /// 用途:SMTC 侧要把"播完自然停"和"用户主动暂停"区分开——两者在
+  /// PlaybackStatus.playing/paused 二态下文案相同(见 smtc.dart)。
+  ///
+  /// 是启发式信号,非精确的"本曲播放完成"事件(AudioEngine 未暴露该事件,
+  /// media_kit 虽有 completed 流,但引入需扩展引擎接口,超出本次改动范围)。
+  /// 已知两处误差,均只影响 SMTC 悬浮窗文案、不影响实际播放/按键:
+  /// - 用户在末曲手动暂停(还没放完)也会判定为"已播完";
+  /// - 起播单曲队列的一瞬间(index 先到位、playingStream 的 true 事件后到)
+  ///   会有 <100ms 的误判窗口,playingStream 触发后立刻纠正。
+  bool get queueFinished =>
+      !_playing &&
+      _repeatMode == RepeatMode.off &&
+      _queue.isNotEmpty &&
+      _index == _queue.length - 1;
+
   Future<void> playTracks(List<Track> tracks, {int startIndex = 0}) async {
     _queue = List.of(tracks);
     _index = startIndex;

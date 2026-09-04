@@ -123,4 +123,43 @@ void main() {
     await pumpEventQueue();
     expect(started, ['fp1', 'fp1']); // 显式再次点播算新的一次
   });
+
+  group('queueFinished(SMTC 用于区分"播完停下"与"用户暂停",T10)', () {
+    test('空队列时为 false', () {
+      expect(controller.queueFinished, isFalse);
+    });
+
+    test('非末曲暂停时为 false(还没放完,只是停在半路)', () async {
+      await controller.playTracks(tracks, startIndex: 0);
+      await pumpEventQueue();
+      engine.playingCtrl.add(false);
+      await pumpEventQueue();
+      expect(controller.currentTrack?.title, 'A'); // 不是末曲
+      expect(controller.queueFinished, isFalse);
+    });
+
+    test('末曲仍在播放时为 false', () async {
+      await controller.playTracks(tracks, startIndex: 2);
+      await pumpEventQueue();
+      expect(controller.playing, isTrue);
+      expect(controller.queueFinished, isFalse);
+    });
+
+    test('RepeatMode.off 下放到末曲且停止播放时为 true', () async {
+      await controller.playTracks(tracks, startIndex: 2);
+      await pumpEventQueue();
+      engine.playingCtrl.add(false); // 引擎报告放完停止
+      await pumpEventQueue();
+      expect(controller.queueFinished, isTrue);
+    });
+
+    test('RepeatMode.all/one 下即便停在末曲也不算"播完"(会继续循环)', () async {
+      await controller.cycleRepeatMode(); // off -> all
+      await controller.playTracks(tracks, startIndex: 2);
+      await pumpEventQueue();
+      engine.playingCtrl.add(false);
+      await pumpEventQueue();
+      expect(controller.queueFinished, isFalse);
+    });
+  });
 }

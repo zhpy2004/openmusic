@@ -41,8 +41,15 @@ Future<void> initSmtc(PlaybackController controller) async {
     }
   });
   controller.engine.playingStream.listen((playing) {
+    // 队列自然放完(非循环、末曲播毕)时报 stopped 而不是 paused,
+    // 与用户主动暂停区分开(见 PlaybackController.queueFinished 的启发式与已知局限)。
+    // stopped 不依赖 SMTCConfig.stopEnabled(该配置只管 Stop 按钮是否显示)。
     smtc.setPlaybackStatus(
-      playing ? PlaybackStatus.playing : PlaybackStatus.paused,
+      playing
+          ? PlaybackStatus.playing
+          : (controller.queueFinished
+                ? PlaybackStatus.stopped
+                : PlaybackStatus.paused),
     );
   });
 }
