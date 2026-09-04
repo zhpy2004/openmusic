@@ -64,6 +64,7 @@ dependencies:
   # mDNS 服务广播 + 发现(_openmusic._tcp)。Dart 官方 multicast_dns 只能查询、
   # 不能注册服务,做不了广播,故用插件。只被 bonsoir_discovery.dart 引用。
   bonsoir: ^7.1.4
+  audio_session: ^0.2.4
 
 dev_dependencies:
   flutter_test:

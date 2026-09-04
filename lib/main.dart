@@ -10,6 +10,7 @@ import 'package:media_kit/media_kit.dart';
 import 'src/app/app.dart';
 import 'src/app/providers.dart';
 import 'src/data/database.dart';
+import 'src/playback/audio_focus.dart';
 import 'src/playback/audio_service_handler.dart';
 import 'src/playback/media_kit_engine.dart';
 import 'src/playback/playback_controller.dart';
@@ -43,6 +44,7 @@ Future<void> main() async {
           androidNotificationOngoing: true,
         ),
       );
+      await initAudioFocus(controller);
     } catch (e) {
       // 媒体会话初始化失败只损失通知栏/锁屏/蓝牙控制,应用本体照常运行。
       debugPrint('AudioService.init failed, running without media session: $e');
