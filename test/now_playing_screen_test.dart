@@ -175,4 +175,56 @@ void main() {
     expect(find.byIcon(Icons.album), findsOneWidget); // 回到封面
     expect(find.text('歌词一句'), findsNothing);
   });
+
+  testWidgets('翻到歌词区再翻回封面:coverArtProvider 不应被重新执行(不是重新拉取)', (
+    tester,
+  ) async {
+    final engine = FakeAudioEngine();
+    final db = AppDatabase(testExecutor());
+    addTearDown(db.close);
+
+    var coverFetchCount = 0;
+    final container = ProviderContainer(
+      overrides: [
+        audioEngineProvider.overrideWithValue(engine),
+        databaseProvider.overrideWithValue(db),
+        lyricsProvider('/a').overrideWith((ref) async => null),
+        coverArtProvider('/a').overrideWith((ref) async {
+          coverFetchCount++;
+          return null; // 无封面,渲染占位图标即可,只关心调用次数
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(playbackControllerProvider);
+    await controller.playTracks([track(1, '/a', 'A')], startIndex: 0);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: localizedApp(const NowPlayingScreen()),
+      ),
+    );
+    await tester.pump();
+    expect(coverFetchCount, 1);
+
+    // 翻到歌词区、再翻回封面区,两个来回
+    await tester.tap(find.byIcon(Icons.album));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('暂无歌词'));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.album));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('暂无歌词'));
+    await tester.pump();
+
+    expect(
+      coverFetchCount,
+      1,
+      reason: 'IndexedStack 应保持两侧常驻,翻面不该重新触发 autoDispose provider',
+    );
+  });
 }

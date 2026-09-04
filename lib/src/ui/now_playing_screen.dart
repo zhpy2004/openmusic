@@ -41,13 +41,20 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
               child: Column(
                 children: [
                   // 中央区:点一下在封面↔歌词间原地翻面。控制键/进度条不动。
+                  // IndexedStack 让两侧常驻(只是非当前 index 不渲染到屏幕),
+                  // 避免 autoDispose provider 在切走时被释放、切回来再拉一次
+                  // 并闪一帧空白(M2-C 遗留 nit)。
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => setState(() => _showLyrics = !_showLyrics),
-                      child: _showLyrics
-                          ? _lyricsArea(track.path, engine)
-                          : _coverArea(track.path),
+                      child: IndexedStack(
+                        index: _showLyrics ? 1 : 0,
+                        children: [
+                          _coverArea(track.path),
+                          _lyricsArea(track.path, engine),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
