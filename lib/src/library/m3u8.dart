@@ -15,6 +15,11 @@ class M3u8Entry {
   final int durationSec;
 }
 
+/// durationMs 为 0(未读到时长,drift 默认值)按 M3U8 惯例写 -1(未知时长),
+/// 而不是 0——多数播放器把 0 当"零秒",-1 才是标准的"未知"约定。
+int durationSecFrom(int durationMs) =>
+    durationMs > 0 ? (durationMs / 1000).round() : -1;
+
 /// 歌单 → 标准 M3U8 文本。路径相对 [baseDir](.m3u8 将保存的目录),统一正斜杠
 /// ——M3U8 标准语义就是"相对于播放列表文件自身位置",别的播放器也这么解析。
 String serializeM3u8({

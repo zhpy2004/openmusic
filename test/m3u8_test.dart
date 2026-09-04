@@ -109,4 +109,10 @@ missing.mp3
     final parsed = parseM3u8(text: text, baseDir: base);
     expect(parsed.paths, ['C:/Music/sub/b.mp3']);
   });
+
+  test('durationSecFrom: durationMs 为 0(未知时长)按 M3U8 惯例映射成 -1', () {
+    expect(durationSecFrom(0), -1);
+    expect(durationSecFrom(15000), 15);
+    expect(durationSecFrom(999), 1); // 四舍五入,与既有 round() 行为一致
+  });
 }

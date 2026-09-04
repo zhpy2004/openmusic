@@ -42,7 +42,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
               absPath: e.track!.path,
               artist: e.track!.artist,
               title: e.track!.title,
-              durationSec: (e.track!.durationMs / 1000).round(),
+              durationSec: durationSecFrom(e.track!.durationMs),
             ),
           )
           .toList(),
