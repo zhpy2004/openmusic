@@ -32,18 +32,26 @@ The feature this project exists for: **add music and build a playlist on the des
 3. **Selective file sync** — tick which playlists to "keep files for locally", then compare fingerprint manifests and pull only what's missing, with HTTP Range resume. **The fingerprint is re-computed before a file is allowed to land**, so a corrupted transfer never enters the library. Tracks whose files are missing stay visible and greyed out, with a per-track "fetch from paired device" action
 4. **Safety floor** — **sync never deletes files.** Deletion is a manual, on-device action. Better a duplicate than a lost track
 
+### v0.7.0 — Polish
+Clearing the backlog and measuring at scale.
+
+- **Fixed: the notification's play button on Android 16.** `audio_service` borrows `KEYCODE_MUTE` as an internal key for the notification's play action, and Android 16 (verified on vivo) drops it as a real mute key before it ever reaches the app — pause worked, play silently did nothing. The play control now uses the standard play/pause media key. (The old audio-focus theory was wrong; on-device logging showed the press never reached Dart.)
+- **Measured at 10,000 tracks** (vivo, release build): the first scan took about 3 min 17 s and the UI stayed interactive throughout; search results refresh within 1.5 s; removing the 10k rows takes under 10 s.
+- **Gapless verified on-device**: two tones played back to back with no pause, click or level jump by ear, and the audio output stream stayed the same one across the boundary.
+- Smaller fixes: search no longer treats `%` and `_` as wildcards; "no matches" is no longer reported as "library is empty"; M3U8 export writes `-1` for unknown duration; notification progress updates are throttled (seeks still apply instantly); flipping between cover and lyrics no longer re-fetches or flashes; the Windows media flyout shows "stopped" when a queue finishes.
+
 ## In progress
 
-### Polish and release
+### Field soak
 
-List and search performance at 10k tracks, first-scan responsiveness on large libraries, gapless verification in the field. Bar to clear: two straight weeks as the primary player with no showstoppers.
+Two straight weeks as the primary player with no showstoppers.
 
 ## Known issues
 
-- **Android: the notification's play button doesn't resume from pause.** Pause, next and previous all work, as do Bluetooth/media keys and the in-app controls. On a vivo device (Android 16) the press leaves no trace in the system log at all — no audio activity, and also no foreground-service restriction and no audio-focus denial — so it is not yet known whether it even reaches the app. The earlier explanation (media_kit and audio_service contending for audio focus) is **unconfirmed**. Telling the two apart needs instrumentation of the Dart-side resume path.
 - Scraping sources (iTunes / MusicBrainz) often return Traditional Chinese titles for Simplified Chinese libraries. Mitigated by defaulting "apply text corrections" to off; covers and lyrics still apply. A real fix needs a Simplified/Traditional converter.
 - Batch lyrics fill has no similarity threshold (covers do). LRCLIB matches server-side on title + artist + duration, and lyrics are deletable sidecar files, so the risk is contained.
-- List scrolling and search performance on large libraries (1000+), and Bluetooth headset media keys, are not yet measured.
+- The first scan of a very large library takes minutes (about 3 min for 10,000 small files) and runs on the main isolate. The UI stayed interactive in testing, but we have no frame-level data.
+- Bluetooth headset keys were exercised through the same media-key path via adb, not with a physical headset.
 
 ## Out of scope for now
 

@@ -6,7 +6,7 @@ A local-first, lightweight music player for Windows and Android, built with Flut
 
 It aims to do two things well: **make building your library painless**, and **keep two devices in sync with one tap**. Your library stays your own files on your own disk.
 
-> **v0.6.4** — LAN sync is complete: two devices discover each other, pair with a 6-digit code, merge playlists/favorites/play history, and pull the audio files for the playlists you choose to mirror. Everything before it (playlists/favorites, metadata scraping, lyrics, setup wizard, English/Simplified Chinese UI) is in daily use. See [ROADMAP.md](ROADMAP.md).
+> **v0.7.0** — Polish release: the Android 16 notification play button is fixed, and the app is now measured at 10,000 tracks and verified gapless on-device. v0.6.4 completed LAN sync: two devices discover each other, pair with a 6-digit code, merge playlists/favorites/play history, and pull the audio files for the playlists you choose to mirror. Everything before it (playlists/favorites, metadata scraping, lyrics, setup wizard, English/Simplified Chinese UI) is in daily use. See [ROADMAP.md](ROADMAP.md).
 
 ## Download
 
@@ -14,10 +14,10 @@ Grab the latest build from [Releases](https://github.com/zhpy2004/openmusic/rele
 
 | Platform | File | Notes |
 |---|---|---|
-| Windows | `openmusic-v0.6.4-windows-x64.zip` | Unzip and run `openmusic.exe`. No installer. Keep the folder intact |
-| Android | `openmusic-v0.6.4-android-universal.apk` | **Pick this if unsure** — works on every device |
-| Android | `openmusic-v0.6.4-android-arm64-v8a.apk` | Any phone from 2017 onward. Half the size |
-| Android | `openmusic-v0.6.4-android-armeabi-v7a.apk` | Older 32-bit devices |
+| Windows | `openmusic-v0.7.0-windows-x64.zip` | Unzip and run `openmusic.exe`. No installer. Keep the folder intact |
+| Android | `openmusic-v0.7.0-android-universal.apk` | **Pick this if unsure** — works on every device |
+| Android | `openmusic-v0.7.0-android-arm64-v8a.apk` | Any phone from 2017 onward. Half the size |
+| Android | `openmusic-v0.7.0-android-armeabi-v7a.apk` | Older 32-bit devices |
 
 On Android you'll need to allow installing apps from unknown sources. APKs are signed with a stable key, so later versions install as upgrades.
 
@@ -82,7 +82,7 @@ Flutter · riverpod (state) · drift/SQLite (index) · media_kit (playback, mpv 
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md). LAN sync landed in v0.6.4; next up is polish and field testing at scale.
+See [ROADMAP.md](ROADMAP.md). LAN sync landed in v0.6.4 and v0.7.0 is the polish release; next up is a two-week field soak.
 
 ## License
 
