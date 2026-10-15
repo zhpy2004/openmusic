@@ -224,6 +224,12 @@ abstract class AppLocalizations {
   /// **'Your library is empty — add a folder in Settings and scan'**
   String get libraryEmpty;
 
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching tracks'**
+  String get searchNoResults;
+
   /// No description provided for @noPlaylistsYet.
   ///
   /// In en, this message translates to:

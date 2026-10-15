@@ -74,6 +74,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libraryEmpty => '曲库为空——到设置里添加文件夹并扫描';
 
   @override
+  String get searchNoResults => '没有匹配的曲目';
+
+  @override
   String get noPlaylistsYet => '还没有歌单,去「歌单」页新建';
 
   @override

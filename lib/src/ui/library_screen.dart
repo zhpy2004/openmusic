@@ -13,6 +13,7 @@ class LibraryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tracksAsync = ref.watch(trackListProvider);
+    final searching = ref.watch(searchQueryProvider).trim().isNotEmpty;
 
     return Material(
       child: Column(
@@ -38,7 +39,12 @@ class LibraryScreen extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text(l10n.loadFailed('$e'))),
               data: (tracks) => tracks.isEmpty
-                  ? Center(child: Text(l10n.libraryEmpty))
+                  // 搜索无匹配 ≠ 曲库为空:后者提示去加文件夹,前者只说没搜到。
+                  ? Center(
+                      child: Text(
+                        searching ? l10n.searchNoResults : l10n.libraryEmpty,
+                      ),
+                    )
                   : ListView.builder(
                       itemCount: tracks.length,
                       itemBuilder: (context, i) {

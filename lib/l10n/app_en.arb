@@ -25,6 +25,7 @@
 
   "searchHint": "Search title, artist, or album",
   "libraryEmpty": "Your library is empty — add a folder in Settings and scan",
+  "searchNoResults": "No matching tracks",
   "noPlaylistsYet": "No playlists yet — create one on the Playlists tab",
   "addToPlaylist": "Add to playlist",
 

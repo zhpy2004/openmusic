@@ -24,6 +24,7 @@
 
   "searchHint": "搜索标题 / 歌手 / 专辑",
   "libraryEmpty": "曲库为空——到设置里添加文件夹并扫描",
+  "searchNoResults": "没有匹配的曲目",
   "noPlaylistsYet": "还没有歌单,去「歌单」页新建",
   "addToPlaylist": "加入歌单",
 

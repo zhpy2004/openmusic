@@ -75,6 +75,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your library is empty — add a folder in Settings and scan';
 
   @override
+  String get searchNoResults => 'No matching tracks';
+
+  @override
   String get noPlaylistsYet =>
       'No playlists yet — create one on the Playlists tab';
 

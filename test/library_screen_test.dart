@@ -72,6 +72,25 @@ void main() {
     expect(find.text('Beta'), findsNothing);
   });
 
+  // 真机实测(1 万曲目首扫中途)发现:搜了没结果却提示「曲库为空——到设置里添加
+  // 文件夹并扫描」,会让人误以为库坏了。无匹配与真空库必须是两种文案。
+  testWidgets('搜索无匹配 → 提示「没有匹配的曲目」,而不是曲库为空', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'zzz不存在');
+    await tester.pumpAndSettle();
+    expect(find.text('没有匹配的曲目'), findsOneWidget);
+    expect(find.textContaining('曲库为空'), findsNothing);
+  });
+
+  testWidgets('曲库真的为空(没搜索)→ 仍提示添加文件夹', (tester) async {
+    await db.customStatement('DELETE FROM tracks');
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('曲库为空'), findsOneWidget);
+    expect(find.text('没有匹配的曲目'), findsNothing);
+  });
+
   testWidgets('曲目 ⋮ 菜单可加入歌单', (tester) async {
     await db.createPlaylist('L1');
     await tester.pumpWidget(app());
