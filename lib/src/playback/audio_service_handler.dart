@@ -17,6 +17,18 @@ class OpenmusicAudioHandler extends BaseAudioHandler with SeekHandler {
   final PlaybackController _controller;
   AudioEngine get _engine => _controller.engine;
 
+  /// 通知栏/锁屏上的「播放」控件。**不能用 [MediaControl.play]**:audio_service
+  /// 给 ACTION_PLAY 的通知按钮借用了 KEYCODE_MUTE 当"绕过键码",Android 16
+  /// (实测 vivo)会把它当真静音键丢掉,点 ▶ 在 App 里完全没有回调(DB-1)。
+  /// 改声明为 playPause:走标准 KEYCODE_MEDIA_PLAY_PAUSE,落到 Dart 是
+  /// click(media),BaseAudioHandler 默认按当前状态切换——这里调用时必为暂停态,
+  /// 结果就是 play()。
+  static const _playControl = MediaControl(
+    androidIcon: 'drawable/audio_service_play_arrow',
+    label: 'Play',
+    action: MediaAction.playPause,
+  );
+
   void _bind() {
     _engine.playingStream.listen((playing) {
       playbackState.add(
@@ -25,7 +37,7 @@ class OpenmusicAudioHandler extends BaseAudioHandler with SeekHandler {
           processingState: AudioProcessingState.ready,
           controls: [
             MediaControl.skipToPrevious,
-            playing ? MediaControl.pause : MediaControl.play,
+            playing ? MediaControl.pause : _playControl,
             MediaControl.skipToNext,
           ],
           systemActions: const {MediaAction.seek},

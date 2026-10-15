@@ -1,3 +1,4 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openmusic/src/data/database.dart';
 import 'package:openmusic/src/playback/audio_service_handler.dart';
@@ -22,6 +23,41 @@ Track _track(String path, String title) => Track(
 );
 
 void main() {
+  // DB-1 根因:audio_service 给「播放」动作借用 KEYCODE_MUTE 当通知按钮键码,
+  // Android 16(vivo)会把它当真静音键丢掉,通知卡片 ▶ 点了没反应。改用
+  // MediaAction.playPause(标准 KEYCODE_MEDIA_PLAY_PAUSE,落到 Dart 是
+  // click(media),BaseAudioHandler 默认按当前状态切换)就能送达。
+  test('暂停态的通知「播放」键必须用 playPause 动作(不能是会被系统丢掉的 play)', () async {
+    final engine = FakeAudioEngine();
+    final controller = PlaybackController(engine);
+    final handler = OpenmusicAudioHandler(controller);
+    addTearDown(controller.dispose);
+
+    engine.playingCtrl.add(false);
+    await Future<void>.delayed(Duration.zero);
+
+    final controls = handler.playbackState.value.controls;
+    final actions = controls.map((c) => c.action).toList();
+    expect(actions, contains(MediaAction.playPause));
+    expect(actions, isNot(contains(MediaAction.play)));
+  });
+
+  test('点通知「播放」键(click media)在暂停态会恢复播放', () async {
+    final engine = FakeAudioEngine();
+    final controller = PlaybackController(engine);
+    final handler = OpenmusicAudioHandler(controller);
+    addTearDown(controller.dispose);
+
+    await controller.playTracks([_track('/a', 'A')], startIndex: 0);
+    engine.playingCtrl.add(false);
+    await Future<void>.delayed(Duration.zero);
+    engine.calls.clear();
+
+    await handler.click(MediaButton.media);
+
+    expect(engine.calls, contains('play'));
+  });
+
   test('position 流高频 tick 不应逐次触发 playbackState 广播', () async {
     final engine = FakeAudioEngine();
     final controller = PlaybackController(engine);
